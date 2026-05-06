@@ -200,6 +200,54 @@ await vesting.createScheduleBatch(
 
 ---
 
+## Frontend Portal — Cloudflare Pages 배포
+
+### 배포 정보
+
+| 항목 | 값 |
+|---|---|
+| Hosting | **Cloudflare Pages** (Wrangler CLI) |
+| Project | `czero-portal` |
+| Account | `misterylee@gmail.com's Account` (id `e82458744ebc655e58fe5194e6fb93fd`) |
+| Production URL | **https://czero-portal.pages.dev** |
+| First deploy | 2026-05-06 |
+| Stack | Vite 8 + React 18 + wagmi v2 + RainbowKit + Tailwind v4 |
+
+### 배포 절차 (재실행 가능)
+
+```bash
+cd frontend
+npm install
+npm run build
+CLOUDFLARE_ACCOUNT_ID=e82458744ebc655e58fe5194e6fb93fd \
+  npx wrangler pages deploy dist --project-name=czero-portal --branch=main
+```
+
+또는 한 줄:
+```bash
+cd frontend && npm run deploy   # CLOUDFLARE_ACCOUNT_ID env 사전 설정 필요
+```
+
+### 첫 배포 시 1회만 (이미 완료)
+
+```bash
+CLOUDFLARE_ACCOUNT_ID=... npx wrangler pages project create czero-portal --production-branch=main
+```
+
+### 환경변수 (Cloudflare Dashboard에서 설정)
+
+Dashboard → Pages → czero-portal → Settings → Environment variables:
+- `VITE_WALLETCONNECT_PROJECT_ID` (production용 — https://cloud.walletconnect.com 발급)
+- `NODE_VERSION = 20`
+
+> 주의: 환경변수 변경 후 **재배포** 필요 (Vite는 빌드 타임에 `import.meta.env`를 inline)
+
+### SPA Routing
+
+`frontend/public/_redirects` 파일이 모든 경로를 `index.html`로 fallback → React Router가 client-side에서 처리.
+
+---
+
 ## 변경 이력
 
 | 일자 | 변경 |
@@ -207,3 +255,4 @@ await vesting.createScheduleBatch(
 | 2026-05-06 | Phase 1 testnet 배포 완료 (CZMToken + CZMVesting), BaseScan verify 완료 |
 | 2026-05-06 | Pre-sale 시뮬레이션 완료 (mint/createSchedule/release/revoke 전 흐름 검증) |
 | 2026-05-06 | Phase 2 Migration 시연 완료 (v1 1000 burn → v2 1000 mint, 회계 무결성 확인) |
+| 2026-05-06 | Frontend Portal Cloudflare Pages 배포 완료 (https://czero-portal.pages.dev) |

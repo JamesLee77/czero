@@ -18,6 +18,9 @@ export default function Layout() {
               <NavLink to="/" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Overview
               </NavLink>
+              <NavLink to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                Dashboard
+              </NavLink>
               <NavLink to="/vesting" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Vesting
               </NavLink>

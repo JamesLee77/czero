@@ -31,3 +31,5 @@ coverage.json
 # Build
 dist/
 build/
+.vite/
+*.tsbuildinfo

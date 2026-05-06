@@ -1,76 +1,106 @@
 # C-ZERO Smart Contracts
 
-C-ZERO Mining Token ($CZM) 시스템의 Solidity smart contract 모음.
+Solidity smart contracts for the C-ZERO Mining Token (`$CZM`) ecosystem, plus a React investor portal.
 
-## 파일 구성
+## Repository layout
 
-| 파일 | 역할 |
+| Path | Purpose |
 |---|---|
-| `CZM_Token_Design.md` | 전체 토큰 설계 문서 (배경·메커니즘·아키텍처) |
-| `CZMToken.sol` | ERC-20 메인 토큰 (5B 하드캡, Burnable/Pausable/Permit) |
-| `CZMVesting.sol` | Linear vesting with cliff (Foundation/Partners/Strategic 등) |
-| `CZMStaking.sol` | 가격 탄력적 yield staking pool (200M cap, 자동 sunset) |
-| `CZMTGESale.sol` | Multi-tier TGE 판매 (Seed $0.15 + Series A $0.20) |
-| `deploy.ts` | Hardhat 배포 스크립트 |
+| `contracts/` | CZMToken, CZMVesting, CZMStaking, CZMTGESale, CZMMigration |
+| `contracts/mocks/` | Test-only mocks (MockUSDC, MockPriceOracle, ReentrantToken) |
+| `scripts/` | Deploy and simulation scripts |
+| `test/` | Hardhat unit + requirements + integration tests (160+ cases) |
+| `frontend/` | Vite 8 + wagmi + RainbowKit investor portal |
+| `CZM_Token_Design.md` | Token design specification |
+| `CZM_Business_Model_and_Requirements.md` | Business model + functional/non-functional requirements |
+| `SECURITY_REVIEW.md` | Slither + manual security review report |
+| `DEPLOYMENT.md` | Deployment record (addresses, tx hashes, simulations) |
 
-## 의존성
+## Solidity files
+
+| File | Role |
+|---|---|
+| `contracts/CZMToken.sol` | ERC-20 main token (5B hard cap, Burnable/Pausable/Permit) |
+| `contracts/CZMVesting.sol` | Linear vesting with cliff (Foundation / Partners / Strategic, etc.) |
+| `contracts/CZMStaking.sol` | Price-elastic yield staking pool (200M cap, auto sunset) |
+| `contracts/CZMTGESale.sol` | Multi-tier TGE sale (Seed $0.15 + Series A $0.20) |
+| `contracts/CZMMigration.sol` | v1 → v2 token swap (1:1 or with bonus) |
+
+## Dependencies
 
 ```bash
-npm install --save-dev hardhat @openzeppelin/contracts ethers
+npm install
 ```
 
-OpenZeppelin v5.0+ 필요 (`ERC20Capped`, `ERC20Pausable`, `ERC20Permit`, `AccessControl`).
+OpenZeppelin v5.0+ is required (`ERC20Capped`, `ERC20Pausable`, `ERC20Permit`, `AccessControl`).
 
-## 컴파일
+## Compile
 
 ```bash
 npx hardhat compile
 ```
 
-Solidity `^0.8.20` 사용 (Cancun EVM 호환).
+Solidity `^0.8.20` (Cancun EVM compatible).
 
-## 테스트 권장 항목
-
-| 항목 | Contract | 설명 |
-|---|---|---|
-| Hard cap | CZMToken | mint 시 5B 초과 revert 확인 |
-| Pause/Unpause | CZMToken | 비상 정지 시 transfer 차단 |
-| Vesting cliff | CZMVesting | cliff 전 release = 0 확인 |
-| Vesting linear | CZMVesting | cliff 후 시간에 비례 release 확인 |
-| Vesting revoke | CZMVesting | 회수 시 vested portion 인도 + 잔여 환원 |
-| Yield rate cap | CZMStaking | 가격 < TGE 시 yield = 10% (cap) |
-| Yield rate decay | CZMStaking | 가격 2× → yield 50%로 감속 확인 |
-| Pool exhaustion | CZMStaking | pool=0 시 yield=0 확인 |
-| Eligibility check | CZMStaking | non-whitelisted stake() revert |
-| TGE round | CZMTGESale | Seed/Series A 동시 운영, hardcap 준수 |
-| TGE claim | CZMTGESale | cliff 후 vest 비율대로 claim |
-
-## 배포 순서
+## Test
 
 ```bash
-# 1. 환경변수 설정
-export ADMIN_ADDRESS=0x...                # multisig address
-export USDC_ADDRESS=0x833589fCD6...        # Base USDC
-export PRICE_ORACLE_ADDRESS=0x...          # 가격 oracle
-
-# 2. testnet 먼저 배포
-npx hardhat run scripts/deploy.ts --network base-sepolia
-
-# 3. 검증 후 mainnet
-npx hardhat run scripts/deploy.ts --network base-mainnet
-
-# 4. BaseScan verify
-npx hardhat verify --network base-mainnet <ADDRESS> <CONSTRUCTOR_ARGS>
+npx hardhat test            # 160+ tests
+npx hardhat coverage        # statements 100%, branches 92%+
 ```
 
-## 보안 권고
+## Recommended test coverage
 
-1. **외부 감사 필수**: TGE 전 Trail of Bits / OpenZeppelin / Quantstamp 등 1개 이상의 감사
-2. **Multisig admin**: 모든 admin role은 3-of-5 Gnosis Safe에 부여
-3. **Timelock**: Admin 행위는 48시간 timelock을 거치도록 권장
-4. **Bug bounty**: TGE 후 Immunefi 등록 (최대 보상 $500K)
-5. **Upgrade 정책**: 모든 contract `non-upgradeable` (사용자 신뢰 우선)
+| Item | Contract | Description |
+|---|---|---|
+| Hard cap | CZMToken | mint above 5B reverts |
+| Pause / unpause | CZMToken | transfer blocked while paused |
+| Vesting cliff | CZMVesting | release = 0 before cliff |
+| Vesting linear | CZMVesting | release proportional to time after cliff |
+| Vesting revoke | CZMVesting | vested portion paid + remainder returned |
+| Yield rate cap | CZMStaking | yield = 10% (cap) when price ≤ TGE |
+| Yield rate decay | CZMStaking | price 2× → yield halves |
+| Pool exhaustion | CZMStaking | yield = 0 when pool drained |
+| Eligibility | CZMStaking | non-whitelisted stake() reverts |
+| TGE round | CZMTGESale | Seed/Series A run together, hardcap respected |
+| TGE claim | CZMTGESale | vest-proportional claim after cliff |
+| Migration | CZMMigration | v1 burned + v2 minted 1:1 |
+
+## Deploy scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/deploy-token.ts` | Token only (off-chain SAFT pre-sale) |
+| `scripts/deploy-presale.ts` | Token + Vesting (on-chain lockup, recommended) |
+| `scripts/deploy-migration.ts` | Migration (Phase 2 v1 → v2) |
+| `scripts/deploy.ts` | Full system (Token + Vesting + Staking + TGESale) |
+| `scripts/simulate-presale.ts` | Re-runnable pre-sale flow simulation |
+| `scripts/simulate-migration.ts` | Re-runnable v1 → v2 migration simulation |
+
+```bash
+# Configure environment
+export ADMIN_ADDRESS=0x...                # multisig address
+export USDC_ADDRESS=0x833589fCD6...        # Base USDC
+export PRICE_ORACLE_ADDRESS=0x...          # price oracle
+
+# Deploy to testnet first
+npm run deploy:presale:sepolia
+
+# Then mainnet after verification
+npm run deploy:presale:mainnet
+
+# Verify on BaseScan
+npx hardhat verify --network base <ADDRESS> <CONSTRUCTOR_ARGS>
+```
+
+## Security recommendations
+
+1. **External audit required** — at least one of Trail of Bits / OpenZeppelin / Quantstamp before TGE
+2. **Multisig admin** — all admin roles assigned to a 3-of-5 Gnosis Safe
+3. **Timelock** — admin actions go through a 48-hour timelock
+4. **Bug bounty** — register on Immunefi after TGE (max reward $500K)
+5. **Upgrade policy** — every contract is `non-upgradeable` (user trust first); ship the next version as a new contract via `CZMMigration`
 
 ## License
 
-MIT License — 누구나 사용·복제·수정·재배포 가능.
+MIT License — anyone may use, copy, modify, and redistribute.

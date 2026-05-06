@@ -6,9 +6,9 @@
  *   npx hardhat run scripts/deploy.ts --network base-mainnet
  *
  * Required env:
- *   ADMIN_ADDRESS         : multisig 또는 owner EOA
+ *   ADMIN_ADDRESS         : multisig or owner EOA
  *   USDC_ADDRESS          : Base USDC address
- *   PRICE_ORACLE_ADDRESS  : 본 사 가격 oracle (Chainlink 또는 custom)
+ *   PRICE_ORACLE_ADDRESS  : project price oracle (Chainlink or custom)
  */
 import { ethers } from "hardhat";
 import { parseUnits } from "ethers";
@@ -110,7 +110,7 @@ async function main() {
   console.log("CZMTGESale  :", tgeAddr);
   console.log("\nNext steps:");
   console.log("  1. Setup Vesting schedules for Foundation/Partners/Marketing");
-  console.log("  2. KYC whitelist투자자들을 TGE & Staking에 추가");
+  console.log("  2. Add KYC-approved investors to the TGE and Staking whitelists");
   console.log("  3. Verify all 4 contracts on BaseScan");
   console.log("  4. Setup multisig timelock for admin role");
 }

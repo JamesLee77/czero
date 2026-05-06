@@ -17,24 +17,24 @@ interface IMintable {
 
 /**
  * @title CZM Migration (v1 → v2)
- * @notice v1 토큰을 burn하고 v2 토큰을 mint하는 1:1 (또는 인센티브) swap.
- *         소수 사전판매 holder + 향후 v2 컨트랙트 출시 시 사용.
+ * @notice 1:1 (or incentivized) swap that burns v1 tokens and mints v2 tokens.
+ *         Used for the small set of pre-sale holders when a v2 contract is released.
  *
  * Architecture:
- *   - v1: 사전판매에 사용된 CZMToken (ERC20Burnable, MINTER_ROLE 보유 admin)
- *   - v2: 새 CZMTokenV2 (이 컨트랙트에 MINTER_ROLE을 grant해야 함)
- *   - bonusBps: 0=1:1, 500=1.05x (5% 인센티브)
+ *   - v1: CZMToken used in the pre-sale (ERC20Burnable; admin holds MINTER_ROLE)
+ *   - v2: new CZMTokenV2 (MINTER_ROLE must be granted to this contract)
+ *   - bonusBps: 0 = 1:1, 500 = 1.05× (5% bonus)
  *
  * Flow:
- *   1) Admin이 v2의 MINTER_ROLE을 본 컨트랙트에 grant
- *   2) Holder가 v1.approve(migration, amount) 또는 permit + migrateWithPermit
- *   3) migrate(amount) 호출 → v1 burnFrom + v2 mint to msg.sender
- *   4) 만료 시 admin이 close()로 영구 종료
+ *   1) Admin grants v2's MINTER_ROLE to this contract
+ *   2) Holder calls v1.approve(migration, amount), or uses permit + migrateWithPermit
+ *   3) migrate(amount) → v1 burnFrom + v2 mint to msg.sender
+ *   4) After deadline, admin can call close() to permanently disable migration
  *
  * Safety:
- *   - Pausable (긴급 정지)
- *   - Deadline (만료 후 자동 차단)
- *   - bonusBps cap (50% 이상 못 설정)
+ *   - Pausable (emergency stop)
+ *   - Deadline (auto-disabled after expiry)
+ *   - bonusBps cap (cannot exceed 50%)
  *   - non-reentrant
  */
 contract CZMMigration is AccessControl, ReentrancyGuard {
@@ -53,7 +53,7 @@ contract CZMMigration is AccessControl, ReentrancyGuard {
     bool    public paused;
     bool    public closed;            // permanently disabled
 
-    uint256 public totalMigrated;     // 누적 v1 burn된 양
+    uint256 public totalMigrated;     // cumulative amount of v1 burned
     mapping(address => uint256) public migratedBy;
 
     event Migrated(address indexed user, uint256 v1Burned, uint256 v2Minted);

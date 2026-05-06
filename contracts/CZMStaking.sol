@@ -8,22 +8,22 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title CZM Early-Investor Staking Pool
- * @notice 초기 투자자(eligible whitelist)를 위한 staking pool.
- *         가격 탄력적(price-elastic) yield rate으로 자동 감속.
- *         Pool cap 도달 시 emission 자동 종료.
+ * @notice Staking pool restricted to early investors via an eligibility whitelist.
+ *         Yield rate is price-elastic and decays automatically.
+ *         Emissions stop automatically when the pool cap is exhausted.
  *
  *  yield_rate(P, pool) = R₀ × (P_TGE / P) × (pool_left / pool_init)
- *      ≤ R₀ = 10%/month  (cap, 초기=최대)
- *      → 0%/month        (pool 소진 시 자연 종료)
+ *      ≤ R₀ = 10%/month  (cap, initial = maximum)
+ *      → 0%/month        (natural termination once the pool is drained)
  *
  * Architecture:
- *   - Eligibility 화이트리스트 관리 (eligible mapping)
- *   - Reward pool 200M $CZM (constructor에서 set)
- *   - Price oracle 외부 주입 (Chainlink AggregatorV3 or custom)
- *   - 매 staking 변경 시점에 reward 자동 적립
+ *   - Eligibility whitelist managed via the `eligible` mapping
+ *   - Reward pool of 200M $CZM (set in constructor)
+ *   - External price oracle (Chainlink AggregatorV3 or custom implementation)
+ *   - Reward accrued automatically on every staking state change
  */
 interface IPriceOracle {
-    /// @return price $CZM 가격 (USD, 18 decimals 기준 wei)
+    /// @return price $CZM price in USD, denominated in 18-decimal wei
     function getPrice() external view returns (uint256 price);
 }
 
@@ -101,7 +101,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
     // ============================================================
 
     /**
-     * @notice 현재 monthly yield rate (BPS).
+     * @notice Current monthly yield rate, in basis points.
      * @return rateBps  yield rate in basis points (1000 = 10%)
      */
     function currentYieldRateBps() public view returns (uint256 rateBps) {
@@ -122,7 +122,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
         return rate;
     }
 
-    /// @notice 사용자별 미수령 보상 (시뮬레이션, 상태 변경 없음)
+    /// @notice Outstanding reward for a user (read-only simulation, no state change).
     function pendingReward(address user) public view returns (uint256) {
         UserInfo storage u = users[user];
         if (u.staked == 0) return 0;
@@ -135,7 +135,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
         return reward;
     }
 
-    /// @dev 내부 보상 지급. 상태 업데이트 + transfer.
+    /// @dev Internal reward payout: state update + transfer.
     function _harvest(address user) internal returns (uint256 reward) {
         UserInfo storage u = users[user];
         if (u.staked == 0) {
@@ -196,7 +196,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
         emit OracleUpdated(newOracle);
     }
 
-    /// @notice pool 소진 후 잔여분 회수 (모든 user가 unstake 완료된 후 실행)
+    /// @notice Recover the remaining pool after exhaustion (call only after all users have unstaked).
     function recoverPoolRemainder() external onlyRole(ADMIN_ROLE) nonReentrant {
         require(totalStaked == 0, "Staking: users still staked");
         uint256 amt = poolRemaining;

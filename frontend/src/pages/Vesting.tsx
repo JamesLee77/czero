@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { CONTRACTS, CZMVestingAbi } from "../lib/contracts";
 import { fmtCZM } from "../lib/format";
@@ -19,6 +20,7 @@ interface ScheduleData {
 }
 
 export default function Vesting() {
+  const { t } = useTranslation(["vesting", "common"]);
   const { address, isConnected } = useAccount();
   const client = usePublicClient();
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
@@ -82,14 +84,14 @@ export default function Vesting() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">Your vesting schedules</h1>
-        <p className="text-sm text-neutral-400">Pre-sale allocations are locked here until cliff + linear vest.</p>
+        <h1 className="text-2xl font-bold">{t("vesting:title")}</h1>
+        <p className="text-sm text-neutral-400">{t("vesting:subtitle")}</p>
       </header>
 
       {loading && <p className="text-neutral-400">Loading…</p>}
       {!loading && schedules.length === 0 && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 text-center text-neutral-400">
-          No vesting schedules found for this address.
+          {t("vesting:noSchedules")}
         </div>
       )}
 
@@ -111,13 +113,23 @@ export default function Vesting() {
                 </div>
               </div>
 
+              <div className="mb-4">
+                <div className="h-2 w-full bg-neutral-800 rounded">
+                  <div
+                    className="h-2 bg-green-500 rounded"
+                    style={{ width: `${pct.toFixed(1)}%` }}
+                    aria-label="vest progress"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-                <div><dt className="text-neutral-400">Total</dt><dd>{fmtCZM(s.totalAmount)} CZM</dd></div>
-                <div><dt className="text-neutral-400">Released</dt><dd>{fmtCZM(s.released)} CZM ({pct.toFixed(1)}%)</dd></div>
-                <div><dt className="text-neutral-400">Releasable now</dt><dd className="text-green-400 font-semibold">{fmtCZM(s.releasable)} CZM</dd></div>
-                <div><dt className="text-neutral-400">Start</dt><dd>{start.toLocaleString()}</dd></div>
-                <div><dt className="text-neutral-400">Cliff ends</dt><dd>{cliffEnd.toLocaleString()}</dd></div>
-                <div><dt className="text-neutral-400">Fully vested</dt><dd>{end.toLocaleString()}</dd></div>
+                <div><dt className="text-neutral-400">{t("vesting:fields.total")}</dt><dd>{fmtCZM(s.totalAmount)} CZM</dd></div>
+                <div><dt className="text-neutral-400">{t("vesting:fields.released")}</dt><dd>{fmtCZM(s.released)} CZM ({pct.toFixed(1)}%)</dd></div>
+                <div><dt className="text-neutral-400">{t("vesting:fields.releasable")}</dt><dd className="text-green-400 font-semibold">{fmtCZM(s.releasable)} CZM</dd></div>
+                <div><dt className="text-neutral-400">{t("vesting:fields.start")}</dt><dd>{start.toLocaleString()}</dd></div>
+                <div><dt className="text-neutral-400">{t("vesting:fields.cliffEnds")}</dt><dd>{cliffEnd.toLocaleString()}</dd></div>
+                <div><dt className="text-neutral-400">{t("vesting:fields.fullyVested")}</dt><dd>{end.toLocaleString()}</dd></div>
               </div>
 
               <button
@@ -127,7 +139,7 @@ export default function Vesting() {
                 })}
                 className="rounded-md bg-green-500 hover:bg-green-400 text-black font-semibold px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {isPending ? "Awaiting wallet…" : isConfirming ? "Confirming…" : `Release ${fmtCZM(s.releasable)} CZM`}
+                {isPending ? t("vesting:awaitingWallet") : isConfirming ? t("vesting:confirming") : t("vesting:release", { amount: fmtCZM(s.releasable) })}
               </button>
             </div>
           );
@@ -141,7 +153,7 @@ export default function Vesting() {
       )}
       {isConfirmed && (
         <div className="rounded-md bg-green-900/40 border border-green-800 p-3 text-green-200 text-sm">
-          Release confirmed. Tokens are in your wallet.
+          {t("vesting:released")}
         </div>
       )}
     </div>

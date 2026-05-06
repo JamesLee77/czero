@@ -12,20 +12,20 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title C-ZERO Mining Token (CZM)
- * @notice C-ZERO 생태계의 utility token.
- *         탄소 마이닝 보상, DeFi 가스, 거버넌스 등의 용도로 사용됨.
+ * @notice Utility token of the C-ZERO ecosystem.
+ *         Used for carbon mining rewards, DeFi gas, governance, and more.
  *
  * Properties:
- *   - 표준: ERC-20 + Burnable + Capped + Pausable + Permit
- *   - 총 발행량: 5,000,000,000 (5B) — 하드캡
+ *   - Standard: ERC-20 + Burnable + Capped + Pausable + Permit
+ *   - Total supply: 5,000,000,000 (5B) — hard cap
  *   - 18 decimals
  *
  * Roles:
- *   - DEFAULT_ADMIN_ROLE  : 다른 role 부여/회수 (multisig)
- *   - MINTER_ROLE         : mint 권한 (TGESale, Vesting, Staking에 부여)
- *   - PAUSER_ROLE         : 비상 정지 (multisig only)
+ *   - DEFAULT_ADMIN_ROLE  : grant/revoke other roles (multisig)
+ *   - MINTER_ROLE         : mint permission (granted to TGESale, Vesting, Staking)
+ *   - PAUSER_ROLE         : emergency pause (multisig only)
  *
- * @dev VARA 라이선스 기반 utility token. US persons 매수는 별도 KYC layer에서 차단.
+ * @dev Utility token under VARA licensing. US persons are blocked at a separate KYC layer.
  */
 contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Permit, AccessControl {
     using SafeERC20 for IERC20;
@@ -51,12 +51,12 @@ contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Perm
         _grantRole(PAUSER_ROLE, admin);
     }
 
-    /// @notice 토큰 발행. MINTER_ROLE 보유자만 호출 가능. 하드캡 초과 시 revert.
+    /// @notice Mint tokens. Only callable by MINTER_ROLE. Reverts if cap exceeded.
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 
-    /// @notice 비상 시 모든 transfer 일시 중단. governance(multisig) 통제 권장.
+    /// @notice Emergency pause of all transfers. Recommended to be controlled by governance (multisig).
     function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
@@ -65,7 +65,7 @@ contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Perm
         _unpause();
     }
 
-    /// @notice 컨트랙트로 잘못 전송된 다른 ERC-20 토큰 회수 (자기 자신은 회수 불가).
+    /// @notice Recover other ERC-20 tokens accidentally sent to this contract (cannot recover self).
     function recoverERC20(address tokenAddr, address to, uint256 amount)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)

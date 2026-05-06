@@ -8,20 +8,20 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title CZM TGE Sale
- * @notice Multi-tier TGE 판매. Seed @ $0.15 / Series A @ $0.20.
- *         KYC whitelist, USDC 결제, 자동 vesting/lock 처리.
+ * @notice Multi-tier TGE sale. Seed @ $0.15 / Series A @ $0.20.
+ *         KYC whitelist, USDC payment, automatic vesting/lock handling.
  *
  * Flow:
- *   1) admin이 round 정의 (price, hardCap, lock duration 등)
- *   2) admin이 KYC 통과자 whitelist 등록
- *   3) 투자자가 USDC로 매수 → CZM 즉시 본 contract에 lock
- *   4) lock 기간 종료 후 vest schedule에 따라 claim
+ *   1) Admin defines a round (price, hardCap, lock duration, etc.)
+ *   2) Admin registers KYC-approved buyers in the whitelist
+ *   3) Investor purchases with USDC → CZM is immediately locked in this contract
+ *   4) After the lock period, investor claims per the vesting schedule
  *
  * Lock-up + Vesting:
- *   - Seed:     12개월 cliff + 24개월 linear vest
- *   - Series A:  6개월 cliff + 12개월 linear vest
+ *   - Seed:      12-month cliff + 24-month linear vest
+ *   - Series A:   6-month cliff + 12-month linear vest
  *
- * @dev US persons는 별도 KYC oracle layer에서 차단 (OFAC + nationality).
+ * @dev US persons are blocked at a separate KYC oracle layer (OFAC + nationality).
  */
 contract CZMTGESale is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -34,12 +34,12 @@ contract CZMTGESale is AccessControl, ReentrancyGuard {
     struct Round {
         string  name;
         uint256 priceUsdc;        // CZM unit price (USDC, 6 decimals)
-        uint256 hardCapTokens;    // round의 최대 판매 CZM 수량 (18 decimals)
-        uint256 soldTokens;       // 누적 판매량
+        uint256 hardCapTokens;    // max CZM sold in this round (18 decimals)
+        uint256 soldTokens;       // cumulative sold amount
         uint256 cliffSeconds;     // lock cliff
-        uint256 vestSeconds;      // 전체 vesting 기간 (cliff 포함)
-        uint256 startTime;        // 판매 개시 시점
-        uint256 endTime;          // 판매 종료 시점
+        uint256 vestSeconds;      // total vesting duration including cliff
+        uint256 startTime;        // sale start timestamp
+        uint256 endTime;          // sale end timestamp
         bool    active;
     }
 
@@ -76,7 +76,7 @@ contract CZMTGESale is AccessControl, ReentrancyGuard {
     // ============================================================
 
     /**
-     * @notice 새 round 생성. hardCapTokens 만큼의 CZM이 미리 본 contract에 transfer되어 있어야 함.
+     * @notice Create a new sale round. `hardCapTokens` worth of CZM must be transferred to this contract beforehand.
      */
     function createRound(
         string calldata name,
@@ -132,9 +132,9 @@ contract CZMTGESale is AccessControl, ReentrancyGuard {
     // ============================================================
 
     /**
-     * @notice CZM 매수. USDC 결제. CZM은 본 contract에 lock되며 cliff 후 linear vest.
-     * @param roundId   매수할 round
-     * @param czmAmount 매수할 CZM 수량 (18 decimals)
+     * @notice Purchase CZM with USDC. CZM is locked in this contract and vests linearly after the cliff.
+     * @param roundId   round to purchase from
+     * @param czmAmount amount of CZM to buy (18 decimals)
      */
     function purchase(uint256 roundId, uint256 czmAmount) external nonReentrant {
         Round storage r = rounds[roundId];

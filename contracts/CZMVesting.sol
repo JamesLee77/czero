@@ -8,18 +8,19 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title CZM Vesting
- * @notice Linear vesting with cliff. 각 카테고리(Foundation/Partners/Strategic/Public 등)별로
- *         별도 schedule 생성 가능. cliff 기간 동안에는 0 release, 이후 선형 unlock.
+ * @notice Linear vesting with cliff. Separate schedules can be created per category
+ *         (Foundation/Partners/Strategic/Public, etc.). Releases nothing during the
+ *         cliff period, then unlocks linearly over time.
  *
- * Schedule 구조:
- *   - beneficiary       : 수령자 주소
- *   - totalAmount       : 총 할당량
- *   - startTime         : vesting 시작 시각
- *   - cliffDuration     : cliff 기간 (초)
- *   - vestingDuration   : 전체 vesting 기간 (cliff 포함, 초)
- *   - released          : 이미 인출된 수량
- *   - revocable         : 관리자가 회수할 수 있는지 (true: Foundation/Partners 등)
- *   - revoked           : 회수 여부
+ * Schedule fields:
+ *   - beneficiary       : recipient address
+ *   - totalAmount       : total allocation
+ *   - startTime         : vesting start timestamp
+ *   - cliffDuration     : cliff duration in seconds
+ *   - vestingDuration   : total vesting duration including cliff, in seconds
+ *   - released          : amount already withdrawn
+ *   - revocable         : whether admin can revoke (true: Foundation/Partners, etc.)
+ *   - revoked           : whether the schedule has been revoked
  */
 contract CZMVesting is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -55,13 +56,13 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice 새 vesting schedule 생성. 토큰은 먼저 본 컨트랙트로 transfer되어 있어야 함.
-     * @param beneficiary    수령자
-     * @param totalAmount    총 할당량 (wei)
-     * @param startTime      시작 시각 (초)
-     * @param cliffDuration  cliff 기간 (초). 예: 1년 = 365 days
-     * @param vestingDuration 전체 vesting 기간 (cliff 포함, 초). cliffDuration ≤ vestingDuration 필요
-     * @param revocable      회수 가능 여부
+     * @notice Create a new vesting schedule. Tokens must be transferred to this contract first.
+     * @param beneficiary     recipient
+     * @param totalAmount     total allocation (wei)
+     * @param startTime       start timestamp (seconds)
+     * @param cliffDuration   cliff duration (seconds). Example: 1 year = 365 days
+     * @param vestingDuration total vesting duration including cliff (seconds). Requires cliffDuration <= vestingDuration
+     * @param revocable       whether the schedule can be revoked
      */
     function createSchedule(
         address beneficiary,
@@ -93,9 +94,9 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice 다수 schedule 일괄 생성. 모든 array의 길이가 일치해야 함.
-     *         사전판매 onboarding 시 가스 절약을 위해 사용.
-     * @return ids 생성된 schedule id 목록 (입력 순서)
+     * @notice Create many schedules in one call. Array lengths must match.
+     *         Useful for gas-efficient pre-sale onboarding.
+     * @return ids list of created schedule ids (in input order)
      */
     function createScheduleBatch(
         address[] calldata beneficiaries,
@@ -135,7 +136,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         }
     }
 
-    /// @notice schedule id의 unlock 가능 수량 (이미 인출분 제외)
+    /// @notice Amount unlocked but not yet released for the given schedule.
     function releasable(uint256 id) public view returns (uint256) {
         Schedule storage s = schedules[id];
         if (s.revoked) return 0;
@@ -148,7 +149,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         return vested - s.released;
     }
 
-    /// @notice 본인 schedule의 unlock분 인출
+    /// @notice Release the unlocked portion of caller's own schedule.
     function release(uint256 id) external nonReentrant {
         Schedule storage s = schedules[id];
         require(s.beneficiary == msg.sender, "Vesting: not beneficiary");
@@ -159,7 +160,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         emit Released(id, s.beneficiary, amt);
     }
 
-    /// @notice 본인의 모든 schedule 일괄 인출
+    /// @notice Release all of caller's schedules in one call.
     function releaseAll() external nonReentrant {
         uint256[] memory ids = scheduleIdsOf[msg.sender];
         uint256 total;
@@ -176,7 +177,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         czm.safeTransfer(msg.sender, total);
     }
 
-    /// @notice revocable schedule 회수 (관리자만). 이미 vested된 분은 beneficiary에 인도.
+    /// @notice Revoke a revocable schedule (admin only). Vested portion is paid to beneficiary first.
     function revoke(uint256 id) external onlyRole(SCHEDULE_MANAGER_ROLE) nonReentrant {
         Schedule storage s = schedules[id];
         require(s.revocable, "Vesting: not revocable");

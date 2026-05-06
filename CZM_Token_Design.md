@@ -8,80 +8,80 @@
 
 ## 1. Token Overview
 
-| 속성 | 값 |
+| Property | Value |
 |---|---|
-| **이름** | C-ZERO Mining Token |
-| **심볼** | CZM (또는 $CZM) |
-| **표준** | ERC-20 (with extensions) |
-| **소수점** | 18 decimals |
-| **총 발행량** | 5,000,000,000 (5B) — Hard cap |
-| **체인** | Base L2 (primary) + Ethereum L1 (bridge) |
-| **발행자** | C-ZERO ADGM Ltd (VARA 라이선스) |
-| **target audience** | Non-US persons (geo-blocked) |
+| **Name** | C-ZERO Mining Token |
+| **Symbol** | CZM (or $CZM) |
+| **Standard** | ERC-20 (with extensions) |
+| **Decimals** | 18 |
+| **Total Supply** | 5,000,000,000 (5B) — Hard cap |
+| **Chain** | Base L2 (primary) + Ethereum L1 (bridge) |
+| **Issuer** | C-ZERO ADGM Ltd (VARA-licensed) |
+| **Target audience** | Non-US persons (geo-blocked) |
 
 ---
 
 ## 2. Distribution
 
-| 카테고리 | 비율 | 토큰 (M) | Vesting | 용도 |
+| Category | Share | Tokens (M) | Vesting | Purpose |
 |---|---|---|---|---|
-| Mining 보상 (DePIN) | 40% | 2,000 | 10년 선형 | Container Node 운영자 보상 |
-| DeFi / 생태계 | 15% | 750 | 5년 선형 | Liquidity, incentives |
-| Foundation | 15% | 750 | 1yr cliff + 3yr | 재단 운영, R&D |
-| Partners | 10% | 500 | 2yr cliff + 3yr | 전략적 파트너 |
-| **Strategic (TGE 일부)** | **8%** | **400** | **6mo lock + 24mo vest** | **Series A** |
-| **Public (TGE 일부)** | **5%** | **250** | **3mo lock + 12mo vest** | **Public sale** |
-| Airdrop | 4% | 200 | 2년 분할 | 커뮤니티 인센티브 |
-| 마케팅 | 3% | 150 | 4년 분할 | 마케팅, 운영비 |
+| Mining rewards (DePIN) | 40% | 2,000 | Linear over 10 years | Container Node operator rewards |
+| DeFi / ecosystem | 15% | 750 | Linear over 5 years | Liquidity, incentives |
+| Foundation | 15% | 750 | 1y cliff + 3y vest | Foundation operations, R&D |
+| Partners | 10% | 500 | 2y cliff + 3y vest | Strategic partners |
+| **Strategic (TGE portion)** | **8%** | **400** | **6mo lock + 24mo vest** | **Series A** |
+| **Public (TGE portion)** | **5%** | **250** | **3mo lock + 12mo vest** | **Public sale** |
+| Airdrop | 4% | 200 | Distributed over 2 years | Community incentives |
+| Marketing | 3% | 150 | Distributed over 4 years | Marketing, opex |
 
-**TGE 판매분**: Strategic 200M + Public 0M = **200M (4% of supply)** at avg $0.183 → **$36.5M raise**
+**TGE allocation**: Strategic 200M + Public 0M = **200M (4% of supply)** at avg $0.183 → **$36.5M raise**
 
 ---
 
 ## 3. Token Mechanisms
 
-### 3.1 ERC-20 Base
-표준 ERC-20 기능: `transfer`, `approve`, `balanceOf` 등. 추가로:
-- **Burnable** (`ERC20Burnable`) — 사용자 또는 Treasury가 토큰 소각 가능
-- **Capped** (`ERC20Capped`) — 5B 하드캡, 추가 발행 불가
-- **Pausable** — 비상 시 전송 일시 중단 (governance 통제)
-- **AccessControl** — `MINTER_ROLE`, `PAUSER_ROLE`, `BURNER_ROLE` 분리
+### 3.1 ERC-20 base
+Standard ERC-20 functions: `transfer`, `approve`, `balanceOf`, etc. Plus:
+- **Burnable** (`ERC20Burnable`) — user or treasury can burn
+- **Capped** (`ERC20Capped`) — 5B hard cap, no further minting beyond cap
+- **Pausable** — emergency transfer halt (governance-controlled)
+- **AccessControl** — separate `MINTER_ROLE`, `PAUSER_ROLE`, `BURNER_ROLE`
 
 ### 3.2 Multi-tier TGE Sale (`CZMTGESale.sol`)
 - 2-tier pricing: Seed ($0.15) / Series A ($0.20)
-- KYC whitelist (eligible 투자자만)
-- Round별 lock-up 자동 적용
-- USD/USDC/ETH 결제
+- KYC whitelist (eligible investors only)
+- Per-round lockup automatically applied
+- USD/USDC/ETH payment
 
 ### 3.3 Vesting (`CZMVesting.sol`)
 - Linear vesting with cliff
-- Per-allocation 별도 vesting schedule
-- Revoke 기능 (해당 카테고리만, governance 통제)
+- Per-allocation independent vesting schedule
+- Revoke capability (per-category, governance-controlled)
 
 ### 3.4 Early-Investor Staking (`CZMStaking.sol`)
-**핵심 메커니즘** — 가격 탄력적 yield 자동 감속
+**Core mechanism** — price-elastic yield with automatic decay
 
 ```
 yield_rate(P, pool) = R₀ × (P_TGE/P) × (pool_left/pool_init)
                     ≤ R₀ = 10%/month (cap)
 ```
 
-- Eligibility: TGE staker만 (whitelist)
-- Pool cap: **200M $CZM** (4% of supply, Foundation pool에서 출자)
-- Continuous decay (no floor) → pool 소진 시 yield → 0
-- 자동 sunset: 4-6개월 만에 pool 소진
+- Eligibility: TGE stakers only (whitelist)
+- Pool cap: **200M $CZM** (4% of supply, funded from Foundation pool)
+- Continuous decay (no floor) → yield → 0 once pool is exhausted
+- Auto sunset: pool drained in 4-6 months
 
-### 3.5 Buyback-and-Burn (Treasury, off-chain or on-chain)
-- 탄소권 매출의 6%로 시장에서 $CZM 매입
-- 매입한 $CZM은 영구 소각 (burn)
-- Y10 누적 burn: ~970M (총 발행의 19%)
+### 3.5 Buyback-and-burn (Treasury, off-chain or on-chain)
+- 6% of carbon-credit revenue used to buy $CZM on the market
+- Purchased $CZM is permanently burned
+- Y10 cumulative burn: ~970M (19% of total supply)
 
 ### 3.6 veCZM (Future — Phase 2)
-Curve veCRV 방식의 vote-escrowed lock:
-- Lock 기간: 1주 ~ 4년
+Curve veCRV-style vote-escrow lock:
+- Lock period: 1 week ~ 4 years
 - voting power = staked_amount × time_to_unlock / max_time
-- veCZM holder는 protocol revenue 분배 받음 (cashflow asset)
-- *Phase 2에서 별도 contract로 deploy*
+- veCZM holders receive a share of protocol revenue (cashflow asset)
+- *Deployed as a separate contract in Phase 2*
 
 ---
 
@@ -120,24 +120,24 @@ Curve veCRV 방식의 vote-escrowed lock:
 
 ## 5. Deployment Plan
 
-### Phase 0 (TGE 직전)
-1. `CZMToken` 배포 → 소유자에게 5B 전체 mint
-2. `CZMVesting` 배포 → 각 카테고리별 vesting schedule 생성
-3. `CZMStaking` 배포 → 200M Pool 자금 transfer
-4. `CZMTGESale` 배포 → Seed 70M + Series A 130M 자금 transfer
+### Phase 0 (just before TGE)
+1. Deploy `CZMToken` → owner mints the entire 5B
+2. Deploy `CZMVesting` → create vesting schedules per category
+3. Deploy `CZMStaking` → fund 200M pool
+4. Deploy `CZMTGESale` → fund Seed 70M + Series A 130M
 
 ### Phase 1 (TGE)
-1. Seed round 시작 → KYC 통과자 매수
-2. Series A round 시작 → KYC 통과자 매수
-3. Public listing (Coinbase Intl, Binance)
+1. Open Seed round → KYC-approved buyers purchase
+2. Open Series A round → KYC-approved buyers purchase
+3. Public listing (Coinbase International, Binance)
 
 ### Phase 2 (TGE + 6mo)
-1. Staking pool 소진 → emission 자동 종료
-2. veCZM 배포 (별도)
-3. DeFi primitives 배포 (cDEX, cLend, cBond)
+1. Staking pool exhausted → emissions auto-stop
+2. Deploy veCZM (separate contract)
+3. Deploy DeFi primitives (cDEX, cLend, cBond)
 
 ### Phase 3 (TGE + 12mo+)
-1. Buyback-burn Treasury 가동
+1. Activate buyback-burn treasury
 2. Cross-chain bridge (L1 ↔ L2)
 3. Governance contract (CZMGovernor)
 
@@ -146,36 +146,37 @@ Curve veCRV 방식의 vote-escrowed lock:
 ## 6. Security Considerations
 
 ### 6.1 Audits
-- 외부 감사 (Trail of Bits / OpenZeppelin / Quantstamp)
-- TGE 전 monthly bug bounty (Immunefi)
+- External audit (Trail of Bits / OpenZeppelin / Quantstamp)
+- Monthly bug bounty (Immunefi) before TGE
 
 ### 6.2 Access Control
 - `DEFAULT_ADMIN_ROLE`: Multisig (3-of-5)
 - `MINTER_ROLE`: TGESale + Vesting (revocable)
 - `PAUSER_ROLE`: Multisig only
-- 모든 admin 행위는 `Timelock` (48시간)을 거쳐야 함
+- All admin actions go through a `Timelock` (48 hours)
 
 ### 6.3 Emergency Procedures
-- `pause()` — 비상 시 전송 일시 중단
-- `recoverERC20()` — 잘못 전송된 토큰 회수
-- Upgrade pattern: 모든 contract `non-upgradeable` (사용자 신뢰 확보) — 다음 버전은 새 contract로 migration
+- `pause()` — halt all transfers in an emergency
+- `recoverERC20()` — recover other tokens accidentally sent in
+- Upgrade pattern: every contract is `non-upgradeable` (user trust first) — the next version is migrated to via a new contract
 
 ### 6.4 Compliance
-- **US Geo-blocking**: TGE Sale의 `purchase()` 함수에서 KYC oracle 통해 IP/국적 확인
-- **VARA / SEC Reg S 준수**: $CZM은 utility token으로 분류, US persons 매수 차단
-- **Sanctions screening**: OFAC list 자동 차단
+- **US geo-blocking**: TGE Sale's `purchase()` checks IP/nationality through a KYC oracle
+- **VARA / SEC Reg S compliance**: $CZM is classified as a utility token, US persons blocked from purchasing
+- **Sanctions screening**: automatic OFAC list block
 
 ---
 
 ## 7. Files
 
-| 파일 | 설명 |
+| File | Description |
 |---|---|
-| `CZMToken.sol` | ERC-20 메인 토큰 |
+| `CZMToken.sol` | ERC-20 main token |
 | `CZMVesting.sol` | Linear vesting with cliff |
-| `CZMStaking.sol` | 가격 탄력적 yield staking pool |
-| `CZMTGESale.sol` | Multi-tier TGE 판매 |
-| `CZM_Token_Design.md` | 본 설계 문서 |
+| `CZMStaking.sol` | Price-elastic yield staking pool |
+| `CZMTGESale.sol` | Multi-tier TGE sale |
+| `CZMMigration.sol` | v1 → v2 swap |
+| `CZM_Token_Design.md` | This design document |
 
 ---
 
@@ -190,4 +191,4 @@ Curve veCRV 방식의 vote-escrowed lock:
 
 ## 9. License
 
-본 contract는 **MIT License**로 배포되며, 누구나 자유롭게 사용·복제·수정할 수 있다.
+These contracts are released under the **MIT License**. Anyone may freely use, copy, modify, and redistribute them.

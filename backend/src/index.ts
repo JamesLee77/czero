@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import type { Env } from "./types";
 import { authRoutes } from "./auth";
 import { meRoutes } from "./me";
+import { emailRoutes, emailVerifyRoute } from "./emailSub";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -19,6 +20,8 @@ app.use("*", async (c, next) => {
 app.get("/health", (c) => c.json({ ok: true, service: "czero-portal-api" }));
 app.route("/api/auth", authRoutes);
 app.route("/api/me", meRoutes);
+app.route("/api/me/email", emailRoutes);
+app.route("/api/email", emailVerifyRoute);
 
 export default {
   fetch: app.fetch,

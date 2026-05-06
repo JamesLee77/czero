@@ -2,10 +2,12 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
@@ -26,6 +28,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  * @dev VARA 라이선스 기반 utility token. US persons 매수는 별도 KYC layer에서 차단.
  */
 contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Permit, AccessControl {
+    using SafeERC20 for IERC20;
+
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
@@ -65,7 +69,7 @@ contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Perm
     {
         require(tokenAddr != address(this), "CZM: cannot recover self");
         require(to != address(0), "CZM: to zero");
-        IERC20(tokenAddr).transfer(to, amount);
+        IERC20(tokenAddr).safeTransfer(to, amount);
         emit TokensRecovered(tokenAddr, to, amount);
     }
 
@@ -77,8 +81,4 @@ contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Perm
     {
         super._update(from, to, value);
     }
-}
-
-interface IERC20 {
-    function transfer(address to, uint256 amount) external returns (bool);
 }

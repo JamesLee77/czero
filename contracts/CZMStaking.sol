@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -27,6 +28,8 @@ interface IPriceOracle {
 }
 
 contract CZMStaking is AccessControl, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IERC20         public immutable czm;
@@ -142,7 +145,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
         reward = pendingReward(user);
         if (reward > 0) {
             poolRemaining -= reward;
-            require(czm.transfer(user, reward), "Staking: reward transfer failed");
+            czm.safeTransfer(user, reward);
             emit RewardClaimed(user, reward, poolRemaining);
         }
         u.lastUpdate = block.timestamp;
@@ -157,7 +160,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
         require(amount > 0, "Staking: zero amount");
 
         _harvest(msg.sender);
-        require(czm.transferFrom(msg.sender, address(this), amount), "Staking: transferFrom failed");
+        czm.safeTransferFrom(msg.sender, address(this), amount);
 
         UserInfo storage u = users[msg.sender];
         u.staked += amount;
@@ -174,7 +177,7 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
         _harvest(msg.sender);
         u.staked -= amount;
         totalStaked -= amount;
-        require(czm.transfer(msg.sender, amount), "Staking: unstake transfer failed");
+        czm.safeTransfer(msg.sender, amount);
 
         emit Unstaked(msg.sender, amount, u.staked);
     }
@@ -194,11 +197,11 @@ contract CZMStaking is AccessControl, ReentrancyGuard {
     }
 
     /// @notice pool 소진 후 잔여분 회수 (모든 user가 unstake 완료된 후 실행)
-    function recoverPoolRemainder() external onlyRole(ADMIN_ROLE) {
+    function recoverPoolRemainder() external onlyRole(ADMIN_ROLE) nonReentrant {
         require(totalStaked == 0, "Staking: users still staked");
         uint256 amt = poolRemaining;
         poolRemaining = 0;
-        require(czm.transfer(msg.sender, amt), "Staking: recover failed");
+        czm.safeTransfer(msg.sender, amt);
     }
 
     // ============================================================

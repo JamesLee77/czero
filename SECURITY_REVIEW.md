@@ -20,9 +20,9 @@
 **Slither**: 1차 24건 → fix 후 **16건** (reentrancy 8건 모두 해소).
 **npm audit**: 41 vulnerabilities, but **0 in runtime deps**. Hardhat 생태계의 dev-only deps (cookie, ws, ip 등). 컨트랙트 배포에는 영향 없음.
 
-**Test coverage** (3차 TDD 후): **Statements 100% / Lines 100% / Functions 100% / Branches 93.04%** (contracts only)
+**Test coverage** (4차 후): **Statements 100% / Lines 100% / Functions 100% / Branches 94.30%** (contracts only)
 
-**테스트 통과**: 134/134 (단위 80 + requirements 29 + integration 4 + branch coverage 21)
+**테스트 통과**: 136/136 (단위 80 + requirements 29 + integration 4 + branch coverage 23)
 
 **적용된 fix** (2026-05-06):
 - L-02: `CZMStaking.recoverPoolRemainder()`, `CZMTGESale.withdrawUSDC()`에 `nonReentrant` 추가
@@ -160,3 +160,57 @@ uint256 rate = (R0_BPS * priceFactor * poolFactor) / (1e18 * 1e18);
 **개발/테스트 단계에서는 즉시 차단해야 할 critical/high 이슈는 없음.** Slither의 reentrancy 경고는 모두 `ReentrancyGuard`로 mitigate된 false positive. 정밀도/timelock/oracle 신뢰 등 documented design concerns는 mainnet 배포 전 외부 감사로 해결 권장.
 
 **Mainnet 배포는 외부 감사 + multisig + timelock + KYC oracle 통합 완료 후에만 권장.**
+
+---
+
+## 6. 미커버 branch 소스 리뷰 (2026-05-06)
+
+최종 branch coverage 94.30%. 미커버 9건은 모두 `nonReentrant` modifier의 음성 경로(reentrancy detected → revert).
+
+### 6.1 모든 9건의 동일 코드 경로
+
+`OZ ReentrancyGuard.sol`의 `_nonReentrantBefore()`:
+```solidity
+function _nonReentrantBefore() private {
+    if (_status == _ENTERED) {
+        revert ReentrancyGuardReentrantCall();
+    }
+    _status = _ENTERED;
+}
+```
+
+`_status == _ENTERED` true branch (revert)는 9개 함수 모두 **동일한 한 줄**의 OZ 라이브러리 코드를 거침. 따라서 representative 1개 검증으로 충분.
+
+### 6.2 대표 검증 완료 (CZMStaking.stake)
+
+`test/BranchCoverage.test.ts:nonReentrant blocks reentry via malicious token`:
+- `ReentrantToken` mock으로 `transferFrom` callback에서 `stake()` 재진입 시도
+- 결과: `ReentrancyGuardReentrantCall` revert 확인 ✓
+
+### 6.3 미커버 9건 명시
+
+| # | 위치 | 함수 | 같은 OZ 코드? |
+|---|---|---|---|
+| 1 | CZMStaking.sol:172 | `unstake` | ✓ |
+| 2 | CZMStaking.sol:185 | `claim` | ✓ |
+| 3 | CZMStaking.sol:200 | `recoverPoolRemainder` | ✓ |
+| 4 | CZMVesting.sol:109 | `release` | ✓ |
+| 5 | CZMVesting.sol:120 | `releaseAll` | ✓ |
+| 6 | CZMVesting.sol:137 | `revoke` | ✓ |
+| 7 | CZMTGESale.sol:139 | `purchase` | ✓ |
+| 8 | CZMTGESale.sol:185 | `claim` | ✓ |
+| 9 | CZMTGESale.sol:198 | `withdrawUSDC` | ✓ |
+
+### 6.4 위험 평가
+
+- **현재 토큰 모델 (CZM = OZ ERC20, USDC = Circle USDC)**: callback 없음 → reentrancy 가드는 트리거되지 않음. 미커버 자체가 무위험.
+- **defense-in-depth 가치**: 향후 토큰 교체·외부 hook 추가 시 보호 효과. 코드는 안전.
+- **OZ ReentrancyGuard 자체 검증**: OpenZeppelin v5 audited. 동일 코드 9회 호출 → 1번 통과 = 모두 통과.
+
+### 6.5 결정
+
+추가 ReentrantToken 시나리오 8개 작성으로 ~98% 도달 가능하나, 동일 OZ 코드의 8회 반복 검증으로 marginal value 낮음. **현재 94.30%로 종결**, 외부 감사에서 확인.
+
+### 6.6 잔여 (Vesting 92.86%, Staking 93.75%)
+
+CZMVesting 미커버 3건과 CZMStaking 미커버 3건 모두 위 9건에 포함됨 — 다른 갭 없음.

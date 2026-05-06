@@ -297,5 +297,29 @@ describe("Branch coverage — uncovered paths", () => {
       );
       expect(await tge.claimable(0, alice.address)).to.equal(0n);
     });
+
+    // CZMTGESale.sol:110 — closeRound onlyRole negative path
+    it("non-admin cannot closeRound", async () => {
+      const now = await time.latest();
+      await tge.createRound(
+        "X", ethers.parseUnits("0.20", 6), ethers.parseUnits("1000", 18),
+        0, ONE_YEAR, now, now + 60 * ONE_DAY
+      );
+      await expect(
+        tge.connect(alice).closeRound(0)
+      ).to.be.revertedWithCustomError(tge, "AccessControlUnauthorizedAccount");
+    });
+
+    // CZMTGESale.sol:122 — setWhitelistBatch onlyRole negative path
+    it("non-admin cannot setWhitelistBatch", async () => {
+      const now = await time.latest();
+      await tge.createRound(
+        "X", ethers.parseUnits("0.20", 6), ethers.parseUnits("1000", 18),
+        0, ONE_YEAR, now, now + 60 * ONE_DAY
+      );
+      await expect(
+        tge.connect(alice).setWhitelistBatch(0, [bob.address], true)
+      ).to.be.revertedWithCustomError(tge, "AccessControlUnauthorizedAccount");
+    });
   });
 });

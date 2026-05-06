@@ -14,7 +14,7 @@ RESEND_FROM = "C-ZERO Portal <onboarding@resend.dev>"
 [[d1_databases]]
 binding = "DB"
 database_name = "czero-portal-db"
-database_id = "REPLACE_WITH_REAL_ID_AFTER_CREATE"
+database_id = "a6d2557e-36f2-4723-bbf3-da39ef91fda6"
 migrations_dir = "migrations"
 
 [triggers]

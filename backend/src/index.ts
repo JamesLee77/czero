@@ -18,7 +18,7 @@ app.get("/health", (c) => c.json({ ok: true, service: "czero-portal-api" }));
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, _env: Env, _ctx: ExecutionContext) {
+  async scheduled(_event: ScheduledController, _env: Env, _ctx: ExecutionContext) {
     // populated in Task 14
   },
 } satisfies ExportedHandler<Env>;

@@ -56,4 +56,34 @@ describe("db", () => {
     const again = await (await import("../src/db")).consumeNonce(env.DB, "nonceB", now);
     expect(again).toBeNull();
   });
+
+  it("upsertUser preserves email_token when not specified in input", async () => {
+    const now = 1_700_000_000;
+    await upsertUser(env.DB, "0xabc", {
+      email: "alice@example.com",
+      email_token: "tok123",
+      email_token_exp: now + 3600,
+    }, now);
+    // Partial update of language only — should NOT clobber the pending email_token
+    await upsertUser(env.DB, "0xabc", { language: "ko" }, now + 10);
+    const u = await getUser(env.DB, "0xabc");
+    expect(u?.email_token).toBe("tok123");
+    expect(u?.email_token_exp).toBe(now + 3600);
+    expect(u?.language).toBe("ko");
+  });
+
+  it("markEmailVerified sets email_verified and clears token fields", async () => {
+    const now = 1_700_000_000;
+    const { markEmailVerified } = await import("../src/db");
+    await upsertUser(env.DB, "0xabc", {
+      email: "alice@example.com",
+      email_token: "tok123",
+      email_token_exp: now + 3600,
+    }, now);
+    await markEmailVerified(env.DB, "0xabc", now + 10);
+    const u = await getUser(env.DB, "0xabc");
+    expect(u?.email_verified).toBe(1);
+    expect(u?.email_token).toBeNull();
+    expect(u?.email_token_exp).toBeNull();
+  });
 });

@@ -52,8 +52,8 @@ export async function upsertUser(
       `UPDATE users SET
          email           = COALESCE(?, email),
          email_verified  = COALESCE(?, email_verified),
-         email_token     = ?,
-         email_token_exp = ?,
+         email_token     = COALESCE(?, email_token),
+         email_token_exp = COALESCE(?, email_token_exp),
          notif_prefs     = COALESCE(?, notif_prefs),
          language        = COALESCE(?, language),
          updated_at      = ?
@@ -76,6 +76,15 @@ export async function clearEmail(db: D1Database, address: string, now: number): 
   await db
     .prepare(
       `UPDATE users SET email=NULL, email_verified=0, email_token=NULL, email_token_exp=NULL, updated_at=? WHERE address=?`,
+    )
+    .bind(now, address.toLowerCase())
+    .run();
+}
+
+export async function markEmailVerified(db: D1Database, address: string, now: number): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE users SET email_verified=1, email_token=NULL, email_token_exp=NULL, updated_at=? WHERE address=?`,
     )
     .bind(now, address.toLowerCase())
     .run();

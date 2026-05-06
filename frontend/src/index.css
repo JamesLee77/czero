@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@rainbow-me/rainbowkit/styles.css";
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR",
+    "Helvetica Neue", Arial, sans-serif;
+}

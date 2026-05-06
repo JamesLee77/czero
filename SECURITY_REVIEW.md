@@ -20,9 +20,9 @@
 **Slither**: 1차 24건 → fix 후 **16건** (reentrancy 8건 모두 해소).
 **npm audit**: 41 vulnerabilities, but **0 in runtime deps**. Hardhat 생태계의 dev-only deps (cookie, ws, ip 등). 컨트랙트 배포에는 영향 없음.
 
-**Test coverage** (4차 후): **Statements 100% / Lines 100% / Functions 100% / Branches 94.30%** (contracts only)
+**Test coverage** (Phase-1 추가 후): **Statements 100% / Branches 92.65%** (contracts only, 5개 컨트랙트)
 
-**테스트 통과**: 136/136 (단위 80 + requirements 29 + integration 4 + branch coverage 23)
+**테스트 통과**: 160/160 (기존 136 + Migration 18 + Vesting batch 6)
 
 **적용된 fix** (2026-05-06):
 - L-02: `CZMStaking.recoverPoolRemainder()`, `CZMTGESale.withdrawUSDC()`에 `nonReentrant` 추가
@@ -214,3 +214,41 @@ function _nonReentrantBefore() private {
 ### 6.6 잔여 (Vesting 92.86%, Staking 93.75%)
 
 CZMVesting 미커버 3건과 CZMStaking 미커버 3건 모두 위 9건에 포함됨 — 다른 갭 없음.
+
+---
+
+## 7. Phase-1 사전판매 + Migration 설계 (2026-05-06)
+
+### 7.1 배포 옵션
+
+소수(~10명 이하) 사전판매 + 향후 v2 마이그레이션 시나리오에 대비해 3종 deploy 스크립트 준비:
+
+| 스크립트 | 컨트랙트 | 용도 |
+|---|---|---|
+| `scripts/deploy-token.ts` | CZMToken만 | SAFT 기반, off-chain lockup |
+| `scripts/deploy-presale.ts` | CZMToken + CZMVesting | on-chain lockup 강제 (권장) |
+| `scripts/deploy-migration.ts` | CZMMigration | Phase 2: v1 → v2 swap |
+
+### 7.2 신규 기능
+
+- **`CZMToken.VERSION`** (constant `"1.0.0"`): v1/v2 클라이언트 분기용
+- **`CZMVesting.createScheduleBatch`**: 다수 투자자 일괄 onboarding (가스 절약)
+- **`CZMMigration.sol`**: 1:1 또는 인센티브 swap, Pausable, Deadline, Permit 통합
+  - CEI 패턴 적용 (state-update before external call)
+  - bonusBps cap 50%
+  - admin은 setPaused/close/setBonus/setDeadline로 통제
+
+### 7.3 Migration 운영 절차
+
+1. v2 토큰 배포 후 `CZMMigration` 배포
+2. v2.grantRole(MINTER_ROLE, migration) — migration이 v2 mint 권한 보유
+3. holder가 `v1.approve(migration, amount)` 또는 permit 사용
+4. holder가 `migration.migrate(amount)` 호출 → v1 burn + v2 mint
+5. deadline 후 `migration.close()`로 영구 종료
+
+### 7.4 위험 평가
+
+- **5B 하드캡 보호**: v1 burn 시 totalSupply 감소 → v2 mint해도 총합은 5B 이내
+- **Migration 권한**: v2 MINTER_ROLE을 migration에 grant. 종료 후 revoke 필수
+- **악의 v1 swap**: 본 컨트랙트는 v1 주소 immutable, 변경 불가
+- **시간 제약**: deadline 만료 후 자동 차단. setDeadline으로 연장만 가능 (단축 불가)

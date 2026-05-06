@@ -92,6 +92,49 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         emit ScheduleCreated(id, beneficiary, totalAmount, startTime, cliffDuration, vestingDuration);
     }
 
+    /**
+     * @notice 다수 schedule 일괄 생성. 모든 array의 길이가 일치해야 함.
+     *         사전판매 onboarding 시 가스 절약을 위해 사용.
+     * @return ids 생성된 schedule id 목록 (입력 순서)
+     */
+    function createScheduleBatch(
+        address[] calldata beneficiaries,
+        uint256[] calldata totalAmounts,
+        uint256 startTime,
+        uint256 cliffDuration,
+        uint256 vestingDuration,
+        bool revocable
+    ) external onlyRole(SCHEDULE_MANAGER_ROLE) returns (uint256[] memory ids) {
+        uint256 n = beneficiaries.length;
+        require(n > 0, "Vesting: empty batch");
+        require(totalAmounts.length == n, "Vesting: length mismatch");
+        require(vestingDuration > 0, "Vesting: duration zero");
+        require(cliffDuration <= vestingDuration, "Vesting: cliff > duration");
+
+        ids = new uint256[](n);
+        for (uint256 i = 0; i < n; i++) {
+            address bene = beneficiaries[i];
+            uint256 amt = totalAmounts[i];
+            require(bene != address(0), "Vesting: beneficiary zero");
+            require(amt > 0, "Vesting: amount zero");
+
+            uint256 id = schedules.length;
+            schedules.push(Schedule({
+                beneficiary: bene,
+                totalAmount: amt,
+                startTime: startTime,
+                cliffDuration: cliffDuration,
+                vestingDuration: vestingDuration,
+                released: 0,
+                revocable: revocable,
+                revoked: false
+            }));
+            scheduleIdsOf[bene].push(id);
+            ids[i] = id;
+            emit ScheduleCreated(id, bene, amt, startTime, cliffDuration, vestingDuration);
+        }
+    }
+
     /// @notice schedule id의 unlock 가능 수량 (이미 인출분 제외)
     function releasable(uint256 id) public view returns (uint256) {
         Schedule storage s = schedules[id];

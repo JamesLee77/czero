@@ -106,4 +106,68 @@ describe("CZMVesting — Requirements", () => {
       expect(await vesting.getScheduleCount()).to.equal(3n);
     });
   });
+
+  describe("createScheduleBatch", () => {
+    it("creates N schedules in one call with consistent params", async () => {
+      const start = await time.latest();
+      const beneficiaries = [alice.address, bob.address];
+      const amounts = [ethers.parseUnits("100", 18), ethers.parseUnits("200", 18)];
+      const ids = await vesting.createScheduleBatch.staticCall(
+        beneficiaries, amounts, start, 0, ONE_YEAR, false
+      );
+      expect(ids[0]).to.equal(0n);
+      expect(ids[1]).to.equal(1n);
+
+      await vesting.createScheduleBatch(beneficiaries, amounts, start, 0, ONE_YEAR, false);
+      expect(await vesting.getScheduleCount()).to.equal(2n);
+      const s0 = await vesting.schedules(0);
+      const s1 = await vesting.schedules(1);
+      expect(s0.beneficiary).to.equal(alice.address);
+      expect(s0.totalAmount).to.equal(amounts[0]);
+      expect(s1.beneficiary).to.equal(bob.address);
+      expect(s1.totalAmount).to.equal(amounts[1]);
+    });
+
+    it("rejects empty batch", async () => {
+      const start = await time.latest();
+      await expect(
+        vesting.createScheduleBatch([], [], start, 0, ONE_YEAR, false)
+      ).to.be.revertedWith("Vesting: empty batch");
+    });
+
+    it("rejects length mismatch", async () => {
+      const start = await time.latest();
+      await expect(
+        vesting.createScheduleBatch([alice.address], [TOTAL, TOTAL], start, 0, ONE_YEAR, false)
+      ).to.be.revertedWith("Vesting: length mismatch");
+    });
+
+    it("rejects bad params (cliff > duration)", async () => {
+      const start = await time.latest();
+      await expect(
+        vesting.createScheduleBatch([alice.address], [TOTAL], start, ONE_YEAR + 1, ONE_YEAR, false)
+      ).to.be.revertedWith("Vesting: cliff > duration");
+    });
+
+    it("rejects zero beneficiary or zero amount inside batch", async () => {
+      const start = await time.latest();
+      await expect(
+        vesting.createScheduleBatch(
+          [alice.address, ethers.ZeroAddress], [TOTAL, TOTAL], start, 0, ONE_YEAR, false
+        )
+      ).to.be.revertedWith("Vesting: beneficiary zero");
+      await expect(
+        vesting.createScheduleBatch(
+          [alice.address, bob.address], [TOTAL, 0], start, 0, ONE_YEAR, false
+        )
+      ).to.be.revertedWith("Vesting: amount zero");
+    });
+
+    it("non-manager cannot call", async () => {
+      const start = await time.latest();
+      await expect(
+        vesting.connect(alice).createScheduleBatch([bob.address], [TOTAL], start, 0, ONE_YEAR, false)
+      ).to.be.revertedWithCustomError(vesting, "AccessControlUnauthorizedAccount");
+    });
+  });
 });

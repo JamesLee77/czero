@@ -4,6 +4,7 @@ import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { BrowserRouter } from "react-router-dom";
+import "./lib/i18n";
 import App from "./App";
 import { config } from "./lib/wagmi";
 import "./index.css";

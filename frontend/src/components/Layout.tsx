@@ -1,7 +1,9 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function Layout() {
+  const { t } = useTranslation(["nav"]);
   const linkBase = "px-3 py-2 rounded-md text-sm font-medium transition";
   const linkActive = "bg-neutral-800 text-white";
   const linkInactive = "text-neutral-400 hover:bg-neutral-900 hover:text-white";
@@ -16,13 +18,19 @@ export default function Layout() {
             </Link>
             <nav className="flex gap-1">
               <NavLink to="/" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                Overview
+                {t("nav:overview")}
+              </NavLink>
+              <NavLink to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                {t("nav:dashboard")}
               </NavLink>
               <NavLink to="/vesting" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                Vesting
+                {t("nav:vesting")}
               </NavLink>
               <NavLink to="/migrate" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                Migrate
+                {t("nav:migrate")}
+              </NavLink>
+              <NavLink to="/settings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                {t("nav:settings")}
               </NavLink>
             </nav>
           </div>

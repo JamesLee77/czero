@@ -248,6 +248,49 @@ Dashboard → Pages → czero-portal → Settings → Environment variables:
 
 ---
 
+## Phase 1 MVP — Investor Portal backend
+
+| Item | Value |
+|---|---|
+| Worker | `czero-portal-api` (Cloudflare Worker) |
+| Live URL | https://czero-portal-api.misterylee.workers.dev |
+| Database | D1 `czero-portal-db` (id `a6d2557e-36f2-4723-bbf3-da39ef91fda6`) |
+| Email provider | Resend (`RESEND_API_KEY` secret — placeholder until real key configured) |
+| Cron | `0 * * * *` (hourly) — schedule scan + dedupe email |
+| Auth | SIWE (EIP-4361) → HttpOnly session cookie (HMAC-SHA256, 7 days, SameSite=Strict) |
+
+### API surface
+- `POST /api/auth/nonce` / `POST /api/auth/verify` / `POST /api/auth/logout`
+- `GET /api/me` / `PUT /api/me`
+- `POST /api/me/email` / `DELETE /api/me/email`
+- `GET /api/email/verify?token=…` (public)
+- `scheduled` (cron — no HTTP)
+
+### Re-deploy
+
+```
+cd backend
+CLOUDFLARE_ACCOUNT_ID=e82458744ebc655e58fe5194e6fb93fd npx wrangler deploy
+
+cd ../frontend
+npm run build
+CLOUDFLARE_ACCOUNT_ID=e82458744ebc655e58fe5194e6fb93fd npm run deploy
+```
+
+### Update Resend API key
+
+Replace the placeholder before mass-emailing:
+```
+echo "<real_resend_api_key>" | CLOUDFLARE_ACCOUNT_ID=e82458744ebc655e58fe5194e6fb93fd npx wrangler secret put RESEND_API_KEY
+```
+(No redeploy needed — secrets pick up immediately.)
+
+### E2E walkthrough
+
+See `docs/superpowers/runbooks/2026-05-07-mvp-e2e-checklist.md` for the full post-deploy checklist.
+
+---
+
 ## Change log
 
 | Date | Change |
@@ -256,3 +299,4 @@ Dashboard → Pages → czero-portal → Settings → Environment variables:
 | 2026-05-06 | Pre-sale simulation complete (mint / createSchedule / release / revoke) |
 | 2026-05-06 | Phase 2 Migration demo complete (v1 1000 burn → v2 1000 mint, accounting verified) |
 | 2026-05-06 | Frontend Portal deployed to Cloudflare Pages (https://czero-portal.pages.dev) |
+| 2026-05-07 | Phase 1 MVP backend deployed (Cloudflare Worker + D1 + Resend + hourly cron); frontend extended with Dashboard/Settings + i18n infra |

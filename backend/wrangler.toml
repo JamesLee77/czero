@@ -9,6 +9,7 @@ RPC_URL = "https://sepolia.base.org"
 CHAIN_ID = "84532"
 CZM_VESTING_ADDRESS = "0xa73d068Bf89F303C009E19d05Fbe40f47eeE1d79"
 APP_BASE_URL = "https://czero-portal.pages.dev"
+API_BASE_URL = "https://czero-portal-api.misterylee.workers.dev"
 RESEND_FROM = "C-ZERO Portal <onboarding@resend.dev>"
 
 [[d1_databases]]

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
+import i18n from "../lib/i18n";
 import { useAccount } from "wagmi";
 import { api } from "../lib/api";
 import { useSession } from "../hooks/useSession";
@@ -146,8 +147,11 @@ export default function Settings() {
           disabled={saving}
           onChange={async (e) => {
             setSaving(true);
-            try { await api.updateMe({ language: e.target.value }); await refresh(); }
-            finally { setSaving(false); }
+            try {
+              await api.updateMe({ language: e.target.value });
+              void i18n.changeLanguage(e.target.value);
+              await refresh();
+            } finally { setSaving(false); }
           }}
           className="bg-neutral-950 border border-neutral-700 rounded-md px-3 py-2"
         >

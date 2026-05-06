@@ -5,6 +5,7 @@ export interface Env {
   CHAIN_ID: string;
   CZM_VESTING_ADDRESS: string;
   APP_BASE_URL: string;
+  API_BASE_URL: string;
   RESEND_FROM: string;
   RESEND_API_KEY: string; // secret
   SIWE_SECRET: string;    // secret

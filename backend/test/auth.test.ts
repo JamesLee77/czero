@@ -54,6 +54,26 @@ describe("auth", () => {
     expect(verifyRes.headers.get("set-cookie")).toMatch(/siwe_session=/);
   });
 
+  it("verify response sets cookie with SameSite=None", async () => {
+    const account = privateKeyToAccount(generatePrivateKey());
+    const nonceRes = await SELF.fetch("http://localhost/api/auth/nonce", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address: account.address }),
+    });
+    const { message } = (await nonceRes.json()) as { message: string };
+    const signature = await account.signMessage({ message });
+    const verifyRes = await SELF.fetch("http://localhost/api/auth/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message, signature }),
+    });
+    const setCookie = verifyRes.headers.get("set-cookie") ?? "";
+    expect(setCookie).toMatch(/SameSite=None/i);
+    expect(setCookie).toMatch(/Secure/i);
+    expect(setCookie).toMatch(/HttpOnly/i);
+  });
+
   it("POST /api/auth/verify rejects when nonce was never issued", async () => {
     const account = privateKeyToAccount(generatePrivateKey());
     const fakeMessage = [

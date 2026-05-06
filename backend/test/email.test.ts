@@ -7,12 +7,12 @@ afterEach(() => vi.unstubAllGlobals());
 describe("renderers", () => {
   it("renderEmailVerify produces a verify link with the token", () => {
     const { subject, html, text } = renderEmailVerify({
-      appBaseUrl: "https://x.example",
+      apiBaseUrl: "https://api.example",
       token: "abc123",
     });
     expect(subject).toMatch(/verify/i);
-    expect(html).toContain("https://x.example/verify-email?token=abc123");
-    expect(text).toContain("https://x.example/verify-email?token=abc123");
+    expect(html).toContain("https://api.example/api/email/verify?token=abc123");
+    expect(text).toContain("https://api.example/api/email/verify?token=abc123");
   });
 
   it("renderClaimReady includes amount and link", () => {

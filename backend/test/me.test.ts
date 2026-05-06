@@ -35,13 +35,13 @@ describe("/api/me", () => {
     const res = await authedFetch("/api/me", {
       method: "PUT",
       body: JSON.stringify({
-        language: "ko",
+        language: "en",
         notif_prefs: { cliff_7d: false, cliff_1d: true, claim_ready: true },
       }),
     });
     expect(res.status).toBe(200);
     const fresh = await (await authedFetch("/api/me")).json() as Record<string, unknown>;
-    expect(fresh.language).toBe("ko");
+    expect(fresh.language).toBe("en");
     expect(fresh.notif_prefs).toEqual({ cliff_7d: false, cliff_1d: true, claim_ready: true });
   });
 

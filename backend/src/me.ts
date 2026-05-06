@@ -7,7 +7,7 @@ export const meRoutes = new Hono<{ Bindings: Env; Variables: { address: string }
 
 meRoutes.use("*", requireSession);
 
-const VALID_LANGS = new Set(["en", "ko"]); // keep tight for now; expand as locales ship
+const VALID_LANGS = new Set(["en"]); // expand when ko.json/ja.json etc. ship
 
 meRoutes.get("/", async (c) => {
   const user = await getUser(c.env.DB, c.var.address);

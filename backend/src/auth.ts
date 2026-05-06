@@ -114,7 +114,7 @@ authRoutes.post("/verify", async (c) => {
   setCookie(c, "siwe_session", cookie, {
     httpOnly: true,
     secure: true,
-    sameSite: "Strict",
+    sameSite: "None",
     path: "/",
     maxAge: SESSION_TTL_SEC,
   });
@@ -122,6 +122,6 @@ authRoutes.post("/verify", async (c) => {
 });
 
 authRoutes.post("/logout", async (c) => {
-  deleteCookie(c, "siwe_session", { path: "/", secure: true, sameSite: "Strict" });
+  deleteCookie(c, "siwe_session", { path: "/", secure: true, sameSite: "None" });
   return c.json({ ok: true });
 });

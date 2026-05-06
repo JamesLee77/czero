@@ -32,7 +32,7 @@ emailRoutes.post("/", requireSession, async (c) => {
     email_token_exp: now + VERIFY_TTL_SEC,
   }, now);
 
-  const tpl = renderEmailVerify({ appBaseUrl: c.env.APP_BASE_URL, token });
+  const tpl = renderEmailVerify({ apiBaseUrl: c.env.API_BASE_URL, token });
   const ok = await sendEmail({
     apiKey: c.env.RESEND_API_KEY,
     from: c.env.RESEND_FROM,

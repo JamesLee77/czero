@@ -25,12 +25,9 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
   return res.ok;
 }
 
-interface VerifyParams {
-  appBaseUrl: string;
-  token: string;
-}
-export function renderEmailVerify({ appBaseUrl, token }: VerifyParams) {
-  const url = `${appBaseUrl}/verify-email?token=${encodeURIComponent(token)}`;
+interface VerifyParams { apiBaseUrl: string; token: string; }
+export function renderEmailVerify({ apiBaseUrl, token }: VerifyParams) {
+  const url = `${apiBaseUrl}/api/email/verify?token=${encodeURIComponent(token)}`;
   return {
     subject: "Verify your C-ZERO portal email",
     html: `<p>Click to verify your email:</p><p><a href="${url}">${url}</a></p><p>This link expires in 24 hours.</p>`,

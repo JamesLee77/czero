@@ -1,0 +1,24 @@
+name = "czero-portal-api"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ALLOWED_ORIGIN = "https://czero-portal.pages.dev"
+RPC_URL = "https://sepolia.base.org"
+CHAIN_ID = "84532"
+CZM_VESTING_ADDRESS = "0xa73d068Bf89F303C009E19d05Fbe40f47eeE1d79"
+APP_BASE_URL = "https://czero-portal.pages.dev"
+RESEND_FROM = "C-ZERO Portal <onboarding@resend.dev>"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "czero-portal-db"
+database_id = "REPLACE_WITH_REAL_ID_AFTER_CREATE"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[dev]
+port = 8787

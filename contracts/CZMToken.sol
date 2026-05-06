@@ -35,6 +35,9 @@ contract CZMToken is ERC20, ERC20Burnable, ERC20Capped, ERC20Pausable, ERC20Perm
 
     uint256 public constant MAX_SUPPLY = 5_000_000_000 * 10**18; // 5B with 18 decimals
 
+    /// @notice Contract version string. Incremented when deploying a successor.
+    string public constant VERSION = "1.0.0";
+
     event TokensRecovered(address indexed token, address indexed to, uint256 amount);
 
     constructor(address admin)

@@ -24,6 +24,9 @@ export default function Layout() {
               <NavLink to="/migrate" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Migrate
               </NavLink>
+              <NavLink to="/settings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                Settings
+              </NavLink>
             </nav>
           </div>
           <ConnectButton chainStatus="icon" showBalance={false} accountStatus={{ smallScreen: "avatar", largeScreen: "full" }} />

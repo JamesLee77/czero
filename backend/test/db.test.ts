@@ -36,4 +36,24 @@ describe("db", () => {
     expect(await alreadySent(env.DB, "0xabc", 0, "claim_ready")).toBe(true);
     expect(await alreadySent(env.DB, "0xabc", 0, "cliff_7d")).toBe(false);
   });
+
+  it("consumeNonce returns address once then null on second call (atomic)", async () => {
+    const now = 1_700_000_000;
+    await (await import("../src/db")).putNonce(env.DB, "nonceA", "0xabc", now + 60);
+    const first = await (await import("../src/db")).consumeNonce(env.DB, "nonceA", now);
+    expect(first?.address).toBe("0xabc");
+    const second = await (await import("../src/db")).consumeNonce(env.DB, "nonceA", now);
+    expect(second).toBeNull();
+  });
+
+  it("consumeNonce returns null when nonce expired (and still deletes the row)", async () => {
+    const now = 1_700_000_000;
+    const past = now - 1; // already expired
+    await (await import("../src/db")).putNonce(env.DB, "nonceB", "0xabc", past);
+    const result = await (await import("../src/db")).consumeNonce(env.DB, "nonceB", now);
+    expect(result).toBeNull();
+    // Calling again should still be null (row was deleted by the previous call)
+    const again = await (await import("../src/db")).consumeNonce(env.DB, "nonceB", now);
+    expect(again).toBeNull();
+  });
 });

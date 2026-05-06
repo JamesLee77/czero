@@ -129,11 +129,10 @@ export async function consumeNonce(
   now: number,
 ): Promise<{ address: string } | null> {
   const row = await db
-    .prepare("SELECT address, expires_at FROM auth_nonces WHERE nonce = ?")
+    .prepare("DELETE FROM auth_nonces WHERE nonce = ? RETURNING address, expires_at")
     .bind(nonce)
     .first<{ address: string; expires_at: number }>();
   if (!row) return null;
-  await db.prepare("DELETE FROM auth_nonces WHERE nonce = ?").bind(nonce).run();
   if (row.expires_at < now) return null;
   return { address: row.address };
 }

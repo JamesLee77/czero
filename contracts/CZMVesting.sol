@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -21,6 +22,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  *   - revoked           : 회수 여부
  */
 contract CZMVesting is AccessControl, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     bytes32 public constant SCHEDULE_MANAGER_ROLE = keccak256("SCHEDULE_MANAGER_ROLE");
 
     IERC20 public immutable czm;
@@ -109,7 +112,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         uint256 amt = releasable(id);
         require(amt > 0, "Vesting: nothing to release");
         s.released += amt;
-        require(czm.transfer(s.beneficiary, amt), "Vesting: transfer failed");
+        czm.safeTransfer(s.beneficiary, amt);
         emit Released(id, s.beneficiary, amt);
     }
 
@@ -127,7 +130,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
             }
         }
         require(total > 0, "Vesting: nothing to release");
-        require(czm.transfer(msg.sender, total), "Vesting: transfer failed");
+        czm.safeTransfer(msg.sender, total);
     }
 
     /// @notice revocable schedule 회수 (관리자만). 이미 vested된 분은 beneficiary에 인도.
@@ -140,7 +143,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         uint256 vested = releasable(id);
         if (vested > 0) {
             s.released += vested;
-            require(czm.transfer(s.beneficiary, vested), "Vesting: pay failed");
+            czm.safeTransfer(s.beneficiary, vested);
             emit Released(id, s.beneficiary, vested);
         }
 
@@ -148,7 +151,7 @@ contract CZMVesting is AccessControl, ReentrancyGuard {
         uint256 remaining = s.totalAmount - s.released;
         s.revoked = true;
         if (remaining > 0) {
-            require(czm.transfer(msg.sender, remaining), "Vesting: refund failed");
+            czm.safeTransfer(msg.sender, remaining);
         }
         emit ScheduleRevoked(id, remaining);
     }

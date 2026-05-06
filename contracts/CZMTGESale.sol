@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -23,6 +24,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @dev US persons는 별도 KYC oracle layer에서 차단 (OFAC + nationality).
  */
 contract CZMTGESale is AccessControl, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IERC20 public immutable czm;
@@ -146,7 +149,7 @@ contract CZMTGESale is AccessControl, ReentrancyGuard {
         uint256 usdcAmount = (czmAmount * r.priceUsdc) / 1e18;
         require(usdcAmount > 0, "TGE: usdc zero");
 
-        require(usdc.transferFrom(msg.sender, address(this), usdcAmount), "TGE: usdc pay failed");
+        usdc.safeTransferFrom(msg.sender, address(this), usdcAmount);
         r.soldTokens += czmAmount;
 
         Allocation storage a = allocations[roundId][msg.sender];
@@ -184,7 +187,7 @@ contract CZMTGESale is AccessControl, ReentrancyGuard {
         require(amt > 0, "TGE: nothing claimable");
         Allocation storage a = allocations[roundId][msg.sender];
         a.claimed += amt;
-        require(czm.transfer(msg.sender, amt), "TGE: claim transfer failed");
+        czm.safeTransfer(msg.sender, amt);
         emit Claimed(roundId, msg.sender, amt);
     }
 
@@ -192,9 +195,9 @@ contract CZMTGESale is AccessControl, ReentrancyGuard {
     //  Withdraw raised funds (admin)
     // ============================================================
 
-    function withdrawUSDC(address to, uint256 amount) external onlyRole(ADMIN_ROLE) {
+    function withdrawUSDC(address to, uint256 amount) external onlyRole(ADMIN_ROLE) nonReentrant {
         require(to != address(0), "TGE: to zero");
-        require(usdc.transfer(to, amount), "TGE: withdraw failed");
+        usdc.safeTransfer(to, amount);
     }
 
     // ============================================================

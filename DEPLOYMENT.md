@@ -143,9 +143,67 @@ await vesting.createScheduleBatch(
 
 ---
 
+## Phase 2 Migration 시연 (Base Sepolia, 2026-05-06)
+
+`scripts/simulate-migration.ts`로 v1 → v2 swap을 testnet에서 검증.
+
+### 추가 배포
+
+| Contract | Address | Verify |
+|---|---|---|
+| **CZMToken v1.0.0 (v2 instance)** | [`0xC51AC33D23f7cCff7ddF83b751C52AF8ff50057c`](https://sepolia.basescan.org/address/0xC51AC33D23f7cCff7ddF83b751C52AF8ff50057c#code) | ✅ |
+| **CZMMigration** (1:1, 30일 deadline) | [`0x1a3Fb22873fF0778069c7708A40E1CEA48Bb660c`](https://sepolia.basescan.org/address/0x1a3Fb22873fF0778069c7708A40E1CEA48Bb660c#code) | ✅ |
+
+> 시연용으로 v2도 같은 CZMToken bytecode 사용 (실제 운영에서는 Node/Mining hook 등 신규 기능 포함된 다른 컨트랙트가 됨).
+
+### 사전 셋업
+
+| Step | Tx | 결과 |
+|---|---|---|
+| v2 토큰 배포 | (deploy) | totalSupply 0 |
+| Migration 배포 (v1, v2, bonus=0, deadline=30d) | (deploy) | initialized |
+| `v2.grantRole(MINTER_ROLE, migration)` | [`0xde0b58...`](https://sepolia.basescan.org/tx/0xde0b58b20fd40ce6774e18d5ad1d840b2896f75f9bc4a96c21453b87acd964c6) | migration이 v2 mint 가능 |
+
+### Swap 흐름
+
+| Step | Holder | Tx | 결과 |
+|---|---|---|---|
+| 1. alice.approve(migration, 690) | alice | [`0x41cd5a...`](https://sepolia.basescan.org/tx/0x41cd5a76e6d97a92943d93f4a203f44328d93be2c5af62136ec1046cc008ea58) | allowance 690 |
+| 2. alice.migrate(690) | alice | [`0xbef484...`](https://sepolia.basescan.org/tx/0xbef484f12acd5d5b0ddacb4b51ab3b9adffe873fe3ab8c96071c8b9f45c273b1) | v1 burn 690, v2 mint 690 |
+| 3. admin.approve(migration, 310) | admin | [`0x74c403...`](https://sepolia.basescan.org/tx/0x74c403652cdf24bac82590db8878204b3a903fc0186203829f45ef2a4b717fa3) | allowance 310 |
+| 4. admin.migrate(310) | admin | [`0xf66c8d...`](https://sepolia.basescan.org/tx/0xf66c8ddf92c33c72e843cb9fbfb4b519d35d23b93b81bb88b650154a2dbc8d06) | v1 burn 310, v2 mint 310 |
+
+### 최종 상태
+
+| 자산 | 사전 | 사후 |
+|---|---|---|
+| Alice v1 | 690 | **0** |
+| Alice v2 | 0 | **690** |
+| Admin v1 | 310 | **0** |
+| Admin v2 | 0 | **310** |
+| v1 totalSupply | 1000 | **0** (전부 burn) |
+| v2 totalSupply | 0 | **1000** (전부 mint) |
+| migration.totalMigrated | 0 | **1000** |
+
+### 검증된 동작
+- ✅ v1 burn (`burnFrom` via 사용자 approve)
+- ✅ v2 mint (migration이 MINTER_ROLE로 mint)
+- ✅ 1:1 ratio (bonusBps=0)
+- ✅ totalSupply 무결성 (v1 burned == v2 minted == 1000)
+- ✅ Alice (random EOA) + Admin (deployer) 모두 swap 성공
+- ✅ CEI 패턴 (state update before external call) — slither warning 0
+
+### 운영 참고
+- **MINTER_ROLE 회수**: 마이그레이션 종료 후 `v2.revokeRole(MINTER_ROLE, migration)`으로 권한 회수 권장
+- **Permit 버전**: gasless approve가 필요한 holder는 `migrateWithPermit()` 사용 (테스트 통과 확인됨)
+- **deadline 만료**: `migration.close()`로 영구 종료 가능
+
+---
+
 ## 변경 이력
 
 | 일자 | 변경 |
 |---|---|
 | 2026-05-06 | Phase 1 testnet 배포 완료 (CZMToken + CZMVesting), BaseScan verify 완료 |
 | 2026-05-06 | Pre-sale 시뮬레이션 완료 (mint/createSchedule/release/revoke 전 흐름 검증) |
+| 2026-05-06 | Phase 2 Migration 시연 완료 (v1 1000 burn → v2 1000 mint, 회계 무결성 확인) |

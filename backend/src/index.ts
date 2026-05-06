@@ -4,6 +4,7 @@ import type { Env } from "./types";
 import { authRoutes } from "./auth";
 import { meRoutes } from "./me";
 import { emailRoutes, emailVerifyRoute } from "./emailSub";
+import { runScheduled } from "./scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -25,7 +26,7 @@ app.route("/api/email", emailVerifyRoute);
 
 export default {
   fetch: app.fetch,
-  async scheduled(_controller: ScheduledController, _env: Env, _ctx: ExecutionContext) {
-    // populated in Task 14
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runScheduled(env));
   },
 } satisfies ExportedHandler<Env>;

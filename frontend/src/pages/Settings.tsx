@@ -5,7 +5,7 @@ import i18n from "../lib/i18n";
 import { useAccount } from "wagmi";
 import { api } from "../lib/api";
 import { useSession } from "../hooks/useSession";
-import { shortAddress } from "../lib/format";
+import CopyableAddress from "../components/CopyableAddress";
 
 export default function Settings() {
   const { t } = useTranslation(["settings", "common"]);
@@ -80,7 +80,7 @@ export default function Settings() {
       <section className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 space-y-3">
         <h2 className="font-semibold">{t("settings:wallet.title")}</h2>
         <p className="text-sm">
-          {t("settings:wallet.connected")}: <span className="font-mono">{shortAddress(me.address)}</span>
+          {t("settings:wallet.connected")}: <CopyableAddress address={me.address} withExplorer />
         </p>
         <button
           onClick={() => void signOut()}

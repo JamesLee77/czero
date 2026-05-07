@@ -1,9 +1,12 @@
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { CONTRACTS, CZMTokenAbi } from "../lib/contracts";
-import { fmtCZM, shortAddress } from "../lib/format";
+import { fmtCZM } from "../lib/format";
+import CopyableAddress from "../components/CopyableAddress";
 
 const v1 = CONTRACTS.baseSepolia.czmTokenV1;
 const v2 = CONTRACTS.baseSepolia.czmTokenV2;
+const vesting = CONTRACTS.baseSepolia.czmVesting;
+const migration = CONTRACTS.baseSepolia.czmMigration;
 
 export default function Home() {
   const { address, isConnected } = useAccount();
@@ -56,7 +59,7 @@ export default function Home() {
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-neutral-400">Address</dt>
-              <dd className="font-mono">{shortAddress(address)}</dd>
+              <dd>{address && <CopyableAddress address={address} withExplorer />}</dd>
             </div>
             <div>
               <dt className="text-neutral-400">v1 CZM</dt>
@@ -69,6 +72,16 @@ export default function Home() {
           </dl>
         </section>
       )}
+
+      <section className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6">
+        <h2 className="text-lg font-semibold mb-3">Contracts (Base Sepolia)</h2>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="flex items-center justify-between"><dt className="text-neutral-400">CZMToken v1</dt><dd><CopyableAddress address={v1} withExplorer /></dd></div>
+          <div className="flex items-center justify-between"><dt className="text-neutral-400">CZMVesting</dt><dd><CopyableAddress address={vesting} withExplorer /></dd></div>
+          <div className="flex items-center justify-between"><dt className="text-neutral-400">CZMToken v2</dt><dd><CopyableAddress address={v2} withExplorer /></dd></div>
+          <div className="flex items-center justify-between"><dt className="text-neutral-400">CZMMigration</dt><dd><CopyableAddress address={migration} withExplorer /></dd></div>
+        </dl>
+      </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6">
@@ -84,7 +97,7 @@ export default function Home() {
             <div className="flex justify-between"><dt className="text-neutral-400">Total supply</dt><dd>{fmtCZM(v1Info?.[3]?.result as bigint | undefined)}</dd></div>
             <div className="flex justify-between"><dt className="text-neutral-400">Cap</dt><dd>{fmtCZM(v1Info?.[4]?.result as bigint | undefined, 0)}</dd></div>
             <div className="flex justify-between"><dt className="text-neutral-400">Paused</dt><dd>{(v1Info?.[5]?.result as boolean | undefined) ? "yes" : "no"}</dd></div>
-            <div className="flex justify-between"><dt className="text-neutral-400">Address</dt><dd className="font-mono text-xs">{shortAddress(v1)}</dd></div>
+            <div className="flex justify-between items-center"><dt className="text-neutral-400">Address</dt><dd><CopyableAddress address={v1} withExplorer /></dd></div>
           </dl>
         </div>
 
@@ -97,7 +110,7 @@ export default function Home() {
           </div>
           <dl className="space-y-1 text-sm">
             <div className="flex justify-between"><dt className="text-neutral-400">Total supply</dt><dd>{fmtCZM(v2Info?.[0]?.result as bigint | undefined)}</dd></div>
-            <div className="flex justify-between"><dt className="text-neutral-400">Address</dt><dd className="font-mono text-xs">{shortAddress(v2)}</dd></div>
+            <div className="flex justify-between items-center"><dt className="text-neutral-400">Address</dt><dd><CopyableAddress address={v2} withExplorer /></dd></div>
           </dl>
         </div>
       </section>

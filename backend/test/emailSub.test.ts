@@ -36,6 +36,23 @@ describe("email subscribe", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it("POST /api/me/email lowercases and trims email before storing + sending", async () => {
+    await upsertUser(env.DB, "0xabc", {}, Math.floor(Date.now()/1000));
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await authedFetch("/api/me/email", {
+      method: "POST",
+      body: JSON.stringify({ email: "  Alice@Example.COM  " }),
+    });
+    expect(res.status).toBe(200);
+    const u = await getUser(env.DB, "0xabc");
+    expect(u?.email).toBe("alice@example.com");
+
+    const sentBody = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(sentBody.to).toBe("alice@example.com");
+  });
+
   it("POST /api/me/email rejects malformed email", async () => {
     await upsertUser(env.DB, "0xabc", {}, Math.floor(Date.now()/1000));
     const res = await authedFetch("/api/me/email", {

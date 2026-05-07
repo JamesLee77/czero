@@ -18,8 +18,12 @@ export const emailRoutes = new Hono<{ Bindings: Env; Variables: { address: strin
 
 emailRoutes.post("/", requireSession, async (c) => {
   const body = await c.req.json().catch(() => null);
-  const email: unknown = body?.email;
-  if (typeof email !== "string" || !EMAIL_RE.test(email)) {
+  const raw: unknown = body?.email;
+  if (typeof raw !== "string") {
+    return c.json({ error: "INVALID_EMAIL" }, 400);
+  }
+  const email = raw.trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) {
     return c.json({ error: "INVALID_EMAIL" }, 400);
   }
   const now = Math.floor(Date.now() / 1000);

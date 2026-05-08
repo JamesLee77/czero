@@ -80,8 +80,15 @@ Holders migrated:
 
 **Final supply state:** v1 = 0 (fully retired), v2 = 4800. Migration is reversible only by re-deploying v1 — i.e., the testnet sale is now permanently in v2.
 
-### §7 Logout — not exercised
-- Implementation present (`POST /api/auth/logout` clears cookie). Skipped in this run; recommend smoke-test before mainnet cutover.
+### §7 Logout — ✅ (validated 2026-05-08 in Sprint 2 / M2)
+- Backend test added: `POST /api/auth/logout clears the siwe_session cookie` in `auth.test.ts` (48 tests total now)
+- E2E HTTP-level validation via `scripts/_e2e-logout-test.ts` against the prod worker — 21/21 assertions pass:
+  - Anonymous `GET /api/me` and `POST /api/me/email` both return 401 (requireSession)
+  - `POST /api/auth/logout` (no cookie) still returns 200 + Set-Cookie clearing `siwe_session` with `Max-Age=0`, `SameSite=None`, `Secure`, `Path=/`
+  - Full SIWE flow: nonce → sign (ephemeral wallet) → verify → cookie set with positive Max-Age → authed `/api/me` returns 200 with the address
+  - Authed logout returns 200 + Set-Cookie clearing the cookie
+- **Architecture clarification:** `/vesting` does not require SIWE — it's a pure on-chain read using wagmi's `isConnected`. SIWE only gates `/api/me/*` and email features. The original sprint-2 plan item "Logout → /vesting redirects to /" was inaccurate; corrected here.
+- **Known limitation:** sessions are stateless (HMAC-signed cookie, no server-side session table). Logout instructs the browser to drop the cookie, but a captured cookie remains valid until the TTL expires. Acceptable for Phase 1; revisit if attack surface grows.
 
 ### §8 Mobile responsive — not exercised
 - Tailwind v4 responsive classes throughout. Not visually verified.
@@ -100,6 +107,7 @@ Hardhat scripts used to script operations rather than walk through UI manually:
 | `scripts/_e2e-migrate-rest.ts` | Bulk migrate remaining holders |
 | `scripts/_e2e-cron-test-setup.ts` | M1-3: 3 trigger schedules (cliff_7d / cliff_1d / claim_ready) |
 | `scripts/_e2e-cron-test-cleanup.ts` | M1-3: release whatever's vested from cron-test schedules |
+| `scripts/_e2e-logout-test.ts` | M2: full SIWE → /api/me → logout flow vs prod worker (21 assertions) |
 
 These are intentionally underscore-prefixed to mark them as throwaway E2E artifacts (not production scripts).
 
@@ -116,7 +124,7 @@ These are intentionally underscore-prefixed to mark them as throwaway E2E artifa
 ## Carry-over items for next phase
 
 1. ~~**Real Resend API key** — replace placeholder, then re-run §3 + §5~~ — done in Sprint 2 / M1
-2. **Logout smoke test (§7)** — 5 min check before any mainnet rollout (Sprint 2 / M2)
+2. ~~**Logout smoke test (§7)** — 5 min check before any mainnet rollout~~ — done in Sprint 2 / M2
 3. **Mobile pass (§8)** — DevTools responsive view sweep (Sprint 2 / M3)
 4. **Subscriber email pruning** — `users.email` rows accumulate; consider GDPR-style purge (Sprint 2 / S1)
 5. **Mainnet deploy plan** — separate runbook; reuse this script library with mainnet RPC + key vault (Sprint 2 / P2)

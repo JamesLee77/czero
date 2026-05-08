@@ -74,6 +74,22 @@ describe("auth", () => {
     expect(setCookie).toMatch(/HttpOnly/i);
   });
 
+  it("POST /api/auth/logout clears the siwe_session cookie", async () => {
+    const res = await SELF.fetch("http://localhost/api/auth/logout", { method: "POST" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: true };
+    expect(body.ok).toBe(true);
+
+    const setCookie = res.headers.get("set-cookie") ?? "";
+    expect(setCookie).toMatch(/siwe_session=/);
+    // cookie must be cleared: either Max-Age=0 or Expires set to a past date
+    expect(setCookie).toMatch(/(Max-Age=0|Expires=Thu, 01 Jan 1970)/i);
+    // and must keep the same flags so the browser actually overwrites the live cookie
+    expect(setCookie).toMatch(/SameSite=None/i);
+    expect(setCookie).toMatch(/Secure/i);
+    expect(setCookie).toMatch(/Path=\//i);
+  });
+
   it("POST /api/auth/verify rejects when nonce was never issued", async () => {
     const account = privateKeyToAccount(generatePrivateKey());
     const fakeMessage = [

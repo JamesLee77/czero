@@ -44,8 +44,10 @@ Private keys for Alice/Bob/Carol live in `.env` (gitignored). All four are impor
 - viem `verifySiweMessage` validates domain/chainId
 - Atomic nonce consumption (`DELETE...RETURNING`)
 
-### §3 Email subscription — ⏭️ deferred
-- Requires real Resend API key (placeholder currently). Code path exercised in unit tests.
+### §3 Email subscription — ✅ (validated 2026-05-08 in Sprint 2 / M1)
+- Resend API key provisioned (`onboarding@resend.dev` sandbox sender to `misterylee@gmail.com`)
+- Subscribe → verify email link → DB shows `email_verified=1` for Alice (`0xd4ee…11f0`)
+- Bug found and fixed mid-test (PR #16): Resend strict-string-compares the recipient against the account-owner email. Subscribe with `misteryLee@gmail.com` (capital L) returned 403 / EMAIL_SEND_FAILED. Backend now `.trim().toLowerCase()` at the API boundary.
 
 ### §4 Vesting — ✅
 4 schedules created and exercised end-to-end:
@@ -59,8 +61,12 @@ Private keys for Alice/Bob/Carol live in `.env` (gitignored). All four are impor
 
 Total CZM v1 minted via vesting: **3800**, all distributed (vesting balance = 0).
 
-### §5 Cron emails — ⏭️ deferred
-- Same gating as §3 (Resend key). Cron handler unit-tested with miniflare.
+### §5 Cron emails — ✅ (validated 2026-05-08 in Sprint 2 / M1)
+- 3 test schedules created for Alice (#5 cliff_7d, #6 cliff_1d, #7 claim_ready) — see `scripts/_e2e-cron-test-setup.ts`
+- Manual cron triggered via `wrangler dev --remote --test-scheduled` + `curl /__scheduled?cron=0+*+*+*+*`
+- 1st trigger: `sent_notifications` gained 3 rows (one per kind), 3 emails delivered to `misterylee@gmail.com`
+- 2nd trigger: `sent_notifications` unchanged (still 3 rows), 0 new emails — dedupe path verified
+- Cleanup: schedule #7 fully vested → Alice released 10 CZM. #5/#6 are non-revocable; locked 20 CZM v1 will vest naturally over 7 days. `sent_notifications` rows kept (would otherwise re-trigger on next prod cron).
 
 ### §6 Migrate (v1 → v2) — ✅
 Holders migrated:
@@ -92,6 +98,8 @@ Hardhat scripts used to script operations rather than walk through UI manually:
 | `scripts/_e2e-release-{alice,bob,admin}.ts` | Release vested portion |
 | `scripts/_e2e-migrate-alice.ts` | Single-wallet v1→v2 migration |
 | `scripts/_e2e-migrate-rest.ts` | Bulk migrate remaining holders |
+| `scripts/_e2e-cron-test-setup.ts` | M1-3: 3 trigger schedules (cliff_7d / cliff_1d / claim_ready) |
+| `scripts/_e2e-cron-test-cleanup.ts` | M1-3: release whatever's vested from cron-test schedules |
 
 These are intentionally underscore-prefixed to mark them as throwaway E2E artifacts (not production scripts).
 
@@ -101,13 +109,15 @@ These are intentionally underscore-prefixed to mark them as throwaway E2E artifa
 |---|---|---|---|
 | C1 | Critical | `SameSite=Strict` cookie blocked cross-origin SPA→API | Changed to `SameSite=None; Secure` |
 | C2 | Critical | Email verify URL pointed to frontend (no route) | Added `API_BASE_URL` env, `renderEmailVerify` uses it |
+| C3 | Critical | Resend rejects recipient when case differs from account-owner email (`misteryLee@` vs `misterylee@`) → Worker returned 502 EMAIL_SEND_FAILED | Backend `.trim().toLowerCase()` at API boundary (PR #16, found during M1-2) |
 | — | UX | RainbowKit defaulted to Korean | Forced `locale="en-US"` in `RainbowKitProvider` |
 | — | UX | Contract addresses not copyable on dashboard | Created `CopyableAddress` component, used on Home + Settings |
 
 ## Carry-over items for next phase
 
-1. **Real Resend API key** — replace placeholder, then re-run §3 + §5
-2. **Logout smoke test (§7)** — 5 min check before any mainnet rollout
-3. **Mobile pass (§8)** — DevTools responsive view sweep
-4. **Subscriber email pruning** — `users.email` rows accumulate; consider GDPR-style purge
-5. **Mainnet deploy plan** — separate runbook; reuse this script library with mainnet RPC + key vault
+1. ~~**Real Resend API key** — replace placeholder, then re-run §3 + §5~~ — done in Sprint 2 / M1
+2. **Logout smoke test (§7)** — 5 min check before any mainnet rollout (Sprint 2 / M2)
+3. **Mobile pass (§8)** — DevTools responsive view sweep (Sprint 2 / M3)
+4. **Subscriber email pruning** — `users.email` rows accumulate; consider GDPR-style purge (Sprint 2 / S1)
+5. **Mainnet deploy plan** — separate runbook; reuse this script library with mainnet RPC + key vault (Sprint 2 / P2)
+6. **Custom Resend sending domain** — current sandbox sender only delivers to account-owner email; verify a real domain to enable external subscribers
